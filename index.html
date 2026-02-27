@@ -27,6 +27,7 @@ h1{font-size:1rem;font-weight:700;}
 .pill-red{background:var(--red);color:#fff;}
 .pill-orange{background:var(--orange);color:#fff;}
 .pill-partial{background:#7b5ea7;color:#fff;}
+.pill-vadeli{background:#1a6b8a;color:#fff;}
 .syncbar{display:flex;align-items:center;gap:5px;font-size:.7rem;padding:5px 11px;border-radius:20px;border:1px solid var(--border);background:var(--card);color:var(--muted);}
 .syncbar.syncing{color:var(--orange);border-color:#f0c878;}
 .syncbar.synced{color:var(--green);border-color:#a8dfc0;}
@@ -61,6 +62,7 @@ h1{font-size:1rem;font-weight:700;}
 .filt-btn.f-iptal.active{background:var(--red);border-color:var(--red);}
 .filt-btn.f-partial.active{background:#7b5ea7;border-color:#7b5ea7;}
 .filt-btn.f-bekliyor.active{background:var(--orange);border-color:var(--orange);}
+.filt-btn.f-vadeli.active{background:#1a6b8a;border-color:#1a6b8a;}
 
 /* TABLE */
 .tblwrap{background:var(--card);border:1px solid var(--border);border-radius:14px;overflow:hidden;}
@@ -75,12 +77,15 @@ tbody tr.st-iptal{background:#fef5f4 !important;}
 tbody tr.st-iptal:hover{background:#fce8e6 !important;}
 tbody tr.st-partial{background:#f5f0fb !important;}
 tbody tr.st-partial:hover{background:#ede5f7 !important;}
+tbody tr.st-vadeli{background:#edf6fa !important;}
+tbody tr.st-vadeli:hover{background:#ddeef5 !important;}
 td{padding:9px 11px;font-size:.8rem;vertical-align:middle;}
 .tdno{color:var(--muted);font-size:.7rem;font-weight:600;width:30px;}
 .tdm{font-weight:600;}
 .tdm.paid{color:var(--green);}
 .tdm.iptal{color:var(--red);text-decoration:line-through;}
 .tdm.partial{color:#7b5ea7;}
+.tdm.vadeli{color:#1a6b8a;}
 .tdd{font-size:.72rem;color:var(--muted);}
 .tdt{font-family:'JetBrains Mono',monospace;font-weight:700;white-space:nowrap;font-size:.79rem;}
 .tdisk{text-align:center;}
@@ -95,11 +100,15 @@ td{padding:9px 11px;font-size:.8rem;vertical-align:middle;}
 .status-select.paid{background:#edfaf3;color:var(--green);}
 .status-select.partial{background:#f5f0fb;color:#7b5ea7;}
 .status-select.iptal{background:#fef5f4;color:var(--red);}
+.status-select.vadeli{background:#edf6fa;color:#1a6b8a;}
 
 /* PARTIAL AMOUNT */
 .partial-wrap{display:none;margin-top:5px;}
 .partial-wrap.show{display:block;}
+.vadeli-wrap{display:none;margin-top:4px;}
+.vadeli-wrap.show{display:block;}
 .partial-inp{width:100%;border:1px solid #c9b8e8;border-radius:6px;padding:4px 7px;font-family:'JetBrains Mono',monospace;font-size:.72rem;font-weight:600;color:#7b5ea7;outline:none;background:#faf7fe;}
+.vadeli-inp{width:100%;border:1px solid #9ecfe0;border-radius:6px;padding:4px 7px;font-family:'Sora',sans-serif;font-size:.72rem;font-weight:600;color:#1a6b8a;outline:none;background:#edf6fa;margin-top:4px;}
 
 /* DOWNLOAD BTNS */
 .tdbtns{white-space:nowrap;}
@@ -209,6 +218,7 @@ td{padding:9px 11px;font-size:.8rem;vertical-align:middle;}
     <span class="pill pill-dark" id="pillToplam">0 musteri</span>
     <span class="pill pill-green" id="pillPaid">0 odedi</span>
     <span class="pill pill-partial" id="pillPartial">0 kismi</span>
+    <span class="pill pill-vadeli" id="pillVadeli">0 vadeli</span>
     <span class="pill pill-red" id="pillIptal">0 iptal</span>
     <div class="syncbar" id="syncbar"><span class="sdot"></span><span id="synctxt">Baglaniyor...</span></div>
   </div>
@@ -235,6 +245,7 @@ td{padding:9px 11px;font-size:.8rem;vertical-align:middle;}
   <button class="filt-btn f-paid" id="fPaid" onclick="setFilter(2)">Odedi</button>
   <button class="filt-btn f-partial" id="fPart" onclick="setFilter(3)">Kismi Odeme</button>
   <button class="filt-btn f-iptal" id="fIptal" onclick="setFilter(4)">Iptal</button>
+  <button class="filt-btn f-vadeli" id="fVadeli" onclick="setFilter(5)">Vadeli</button>
 </div>
 
 <!-- TABLO -->
@@ -381,7 +392,7 @@ function saveIskontoSettings(){
 // FİLTRE
 function setFilter(f){
   activeFilter = f;
-  var ids = ["fAll","fBek","fPaid","fPart","fIptal"];
+  var ids = ["fAll","fBek","fPaid","fPart","fIptal","fVadeli"];
   for (var i = 0; i < ids.length; i++){
     document.getElementById(ids[i]).classList.remove("active");
   }
@@ -399,7 +410,8 @@ function applyFilters(){
       (activeFilter === 1 && st === "bekliyor") ||
       (activeFilter === 2 && st === "paid") ||
       (activeFilter === 3 && st === "partial") ||
-      (activeFilter === 4 && st === "iptal");
+      (activeFilter === 4 && st === "iptal") ||
+      (activeFilter === 5 && st === "vadeli");
     return nameOk && stOk;
   });
   draw();
@@ -413,13 +425,14 @@ function draw(){
   var slice = fil.slice(s, s+PAGE);
   var tb = document.getElementById("tbody");
   var html = "";
-  var paidC=0, partialC=0, iptalC=0;
+  var paidC=0, partialC=0, iptalC=0, vadeliC=0;
 
   for (var gi = 0; gi < DATA.length; gi++){
     var gst = (statusMap[gi] && statusMap[gi].status) || "bekliyor";
     if (gst === "paid") paidC++;
     else if (gst === "partial") partialC++;
     else if (gst === "iptal") iptalC++;
+    else if (gst === "vadeli") vadeliC++;
   }
 
   for (var i = 0; i < slice.length; i++){
@@ -431,8 +444,8 @@ function draw(){
     var st = stObj.status || "bekliyor";
     var partial = stObj.partial || "";
     var net = m.tutar * (1 - m.iskonto/100);
-    var trCls = st === "paid" ? " class=\"st-paid\"" : st === "iptal" ? " class=\"st-iptal\"" : st === "partial" ? " class=\"st-partial\"" : "";
-    var nameCls = st === "paid" ? " paid" : st === "iptal" ? " iptal" : st === "partial" ? " partial" : "";
+    var trCls = st === "paid" ? " class=\"st-paid\"" : st === "iptal" ? " class=\"st-iptal\"" : st === "partial" ? " class=\"st-partial\"" : st === "vadeli" ? " class=\"st-vadeli\"" : "";
+    var nameCls = st === "paid" ? " paid" : st === "iptal" ? " iptal" : st === "partial" ? " partial" : st === "vadeli" ? " vadeli" : "";
 
     html += "<tr" + trCls + ">";
     html += "<td class=\"tdno\">" + (fi+1) + "</td>";
@@ -449,14 +462,29 @@ function draw(){
     html += "<option value=\"paid\"" + (st==="paid"?" selected":"") + ">&#10003; Odedi</option>";
     html += "<option value=\"partial\"" + (st==="partial"?" selected":"") + ">&#9680; Kismi Odeme</option>";
     html += "<option value=\"iptal\"" + (st==="iptal"?" selected":"") + ">&#10005; Iptal</option>";
+    html += "<option value=\"vadeli\"" + (st==="vadeli"?" selected":"") + ">&#128197; Vadeli</option>";
     html += "</select>";
+    var vadeliTarih = stObj.vadeliTarih || "";
     if (st === "partial"){
       html += "<div class=\"partial-wrap show\">";
       html += "<input class=\"partial-inp\" type=\"text\" placeholder=\"Odenen tutar (&#8378;)\" value=\"" + partial + "\" data-gidx=\"" + gi2 + "\" onchange=\"changePartial(this)\">";
       html += "</div>";
+      html += "<div class=\"vadeli-wrap\">";
+      html += "<input class=\"vadeli-inp\" type=\"date\" placeholder=\"Vade tarihi\" value=\"" + vadeliTarih + "\" data-gidx=\"" + gi2 + "\" onchange=\"changeVadeli(this)\">";
+      html += "</div>";
+    } else if (st === "vadeli"){
+      html += "<div class=\"partial-wrap\">";
+      html += "<input class=\"partial-inp\" type=\"text\" placeholder=\"Odenen tutar (&#8378;)\" value=\"" + partial + "\" data-gidx=\"" + gi2 + "\" onchange=\"changePartial(this)\">";
+      html += "</div>";
+      html += "<div class=\"vadeli-wrap show\">";
+      html += "<input class=\"vadeli-inp\" type=\"date\" placeholder=\"Vade tarihi\" value=\"" + vadeliTarih + "\" data-gidx=\"" + gi2 + "\" onchange=\"changeVadeli(this)\">";
+      html += "</div>";
     } else {
       html += "<div class=\"partial-wrap\">";
       html += "<input class=\"partial-inp\" type=\"text\" placeholder=\"Odenen tutar (&#8378;)\" value=\"" + partial + "\" data-gidx=\"" + gi2 + "\" onchange=\"changePartial(this)\">";
+      html += "</div>";
+      html += "<div class=\"vadeli-wrap\">";
+      html += "<input class=\"vadeli-inp\" type=\"date\" value=\"" + vadeliTarih + "\" data-gidx=\"" + gi2 + "\" onchange=\"changeVadeli(this)\">";
       html += "</div>";
     }
     html += "</td>";
@@ -472,6 +500,7 @@ function draw(){
   document.getElementById("pillPaid").textContent = paidC + " odedi";
   document.getElementById("pillPartial").textContent = partialC + " kismi";
   document.getElementById("pillIptal").textContent = iptalC + " iptal";
+  document.getElementById("pillVadeli").textContent = vadeliC + " vadeli";
 
   attachBtns();
   drawPag();
@@ -487,11 +516,14 @@ function changeStatus(sel){
   var wrap = sel.parentElement.querySelector(".partial-wrap");
   if (val === "partial") wrap.classList.add("show");
   else wrap.classList.remove("show");
+  var vwrap = sel.parentElement.querySelector(".vadeli-wrap");
+  if (val === "vadeli") vwrap.classList.add("show");
+  else vwrap.classList.remove("show");
   // satır rengini güncelle
   var tr = sel.closest("tr");
-  tr.className = val === "paid" ? "st-paid" : val === "iptal" ? "st-iptal" : val === "partial" ? "st-partial" : "";
+  tr.className = val === "paid" ? "st-paid" : val === "iptal" ? "st-iptal" : val === "partial" ? "st-partial" : val === "vadeli" ? "st-vadeli" : "";
   var tdm = tr.querySelector(".tdm");
-  tdm.className = "tdm" + (val==="paid"?" paid":val==="iptal"?" iptal":val==="partial"?" partial":"");
+  tdm.className = "tdm" + (val==="paid"?" paid":val==="iptal"?" iptal":val==="partial"?" partial":val==="vadeli"?" vadeli":"");
   saveStatus();
 }
 
@@ -499,6 +531,13 @@ function changePartial(inp){
   var gi = parseInt(inp.getAttribute("data-gidx"));
   if (!statusMap[gi]) statusMap[gi] = {};
   statusMap[gi].partial = inp.value;
+  saveStatus();
+}
+
+function changeVadeli(inp){
+  var gi = parseInt(inp.getAttribute("data-gidx"));
+  if (!statusMap[gi]) statusMap[gi] = {};
+  statusMap[gi].vadeliTarih = inp.value;
   saveStatus();
 }
 
