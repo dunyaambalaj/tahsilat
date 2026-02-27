@@ -99,7 +99,7 @@ tbody tr.paid .tdt,.paid .tdnet{color:#1a6b3c !important;}
   .pag{flex-direction:column;align-items:flex-start;gap:10px;}
   .pagbtns{flex-wrap:wrap;}
 }
-#rc{position:fixed;left:-9999px;top:0;width:900px;background:#fff;font-family:'Sora',sans-serif;}
+#rc{position:fixed;left:-9999px;top:0;width:900px;min-width:900px;max-width:900px;background:#fff;font-family:'Sora',sans-serif;font-size:16px;-webkit-text-size-adjust:none;text-size-adjust:none;zoom:1;}
 .bch{background:#1a2236;padding:22px 36px 18px;display:flex;align-items:center;justify-content:space-between;}
 .bch img{height:52px;}
 .bchmeta{text-align:right;}
@@ -452,9 +452,29 @@ function dl(fi, tip, btn) {
   if (!m) { alert("Musteri bulunamadi."); return; }
   btn.disabled = true;
   btn.textContent = "...";
-  document.getElementById("rc").innerHTML = buildCard(m);
+  var rc = document.getElementById("rc");
+  rc.innerHTML = buildCard(m);
+  rc.style.width = "900px";
+  rc.style.minWidth = "900px";
+  rc.style.fontSize = "16px";
   setTimeout(function() {
-    html2canvas(document.getElementById("rc"), {scale:2, useCORS:true, backgroundColor:"#fff"}).then(function(canvas) {
+    html2canvas(rc, {
+      scale: 2,
+      useCORS: true,
+      backgroundColor: "#fff",
+      width: 900,
+      windowWidth: 900,
+      logging: false,
+      onclone: function(doc) {
+        var el = doc.getElementById("rc");
+        el.style.width = "900px";
+        el.style.minWidth = "900px";
+        el.style.left = "0";
+        el.style.position = "relative";
+        el.style.fontSize = "16px";
+        el.style.webkitTextSizeAdjust = "none";
+      }
+    }).then(function(canvas) {
       var safe = "";
       for (var i = 0; i < m.musteri.length && safe.length < 50; i++) {
         var c = m.musteri[i];
