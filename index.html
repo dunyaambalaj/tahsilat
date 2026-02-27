@@ -50,6 +50,15 @@ td{padding:10px 13px;font-size:.82rem;vertical-align:middle;}
 .pb:hover{border-color:var(--red);color:var(--red);}
 .pb.act{background:var(--dark);color:#fff;border-color:var(--dark);}
 .pb:disabled{opacity:.3;pointer-events:none;}
+.syncbar{display:flex;align-items:center;gap:6px;font-size:.72rem;color:var(--muted);padding:6px 12px;background:var(--card);border:1px solid var(--border);border-radius:20px;transition:all .3s;}
+.syncbar.syncing{color:#e07b2a;border-color:#f0c878;}
+.syncbar.synced{color:var(--green);border-color:#a8dfc0;}
+.syncbar.error{color:var(--red);border-color:#f0c8c4;}
+.syncdot{width:7px;height:7px;border-radius:50%;background:var(--muted);transition:background .3s;}
+.syncbar.syncing .syncdot{background:#e07b2a;animation:pulse .8s infinite;}
+.syncbar.synced .syncdot{background:var(--green);}
+.syncbar.error .syncdot{background:var(--red);}
+@keyframes pulse{0%,100%{opacity:1;}50%{opacity:.3;}}
 .chkwrap{display:flex;align-items:center;justify-content:center;}
 .odchk{display:none;}
 .odlbl{display:flex;align-items:center;gap:6px;cursor:pointer;user-select:none;padding:4px 8px;border-radius:8px;border:1px solid var(--border);background:#fafafa;transition:all .15s;white-space:nowrap;}
@@ -148,6 +157,8 @@ tbody tr.paid .tdt,.paid .tdnet{color:#1a6b3c !important;}
 .bcft p{font-size:.7rem;color:rgba(255,255,255,.4);}
 .bcft strong{color:rgba(255,255,255,.7);}
 </style>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
 </head>
 <body>
 <div class="wrap">
@@ -156,7 +167,12 @@ tbody tr.paid .tdt,.paid .tdnet{color:#1a6b3c !important;}
 <div class="badge">Adel &middot; Faber-Castell</div>
 <h1>Toplu Odeme Bildirimi Listesi</h1>
 </div>
-<div class="cpill" id="cpill">Yukleniyor...</div>
+<div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
+  <div class="cpill" id="cpill">Yukleniyor...</div>
+  <div class="cpill" id="paidpill" style="background:var(--green);">0 odedi</div>
+  <button id="resetBtn" onclick="resetPaid()" style="background:none;border:1px solid var(--border);border-radius:20px;padding:6px 12px;font-family:'Sora',sans-serif;font-size:.7rem;font-weight:600;color:var(--muted);cursor:pointer;transition:all .15s;" onmouseover="this.style.borderColor='#c0392b';this.style.color='#c0392b';" onmouseout="this.style.borderColor='var(--border)';this.style.color='var(--muted)';">&#10005; Sifirla</button>
+  <div class="syncbar" id="syncbar"><span class="syncdot"></span><span id="synctxt">Baglaniyor...</span></div>
+</div>
 </div>
 <div class="srch"><span class="ico">&#128269;</span><input type="text" id="sinp" placeholder="Musteri adiyla arayin..."></div>
 <div class="tblwrap"><table><thead><tr>
@@ -189,6 +205,49 @@ var PAGE = 20;
 var fil = DATA.slice();
 var pg = 1;
 var paidSet = {};
+var db = null;
+var dbRef = null;
+
+// Firebase başlat
+firebase.initializeApp({
+  apiKey: "AIzaSyCgVqIaYAaxMbBbf3_eLJ6VKSko60N4pQ4",
+  authDomain: "fuar-tahsilat.firebaseapp.com",
+  databaseURL: "https://fuar-tahsilat-default-rtdb.europe-west1.firebasedatabase.app",
+  projectId: "fuar-tahsilat",
+  storageBucket: "fuar-tahsilat.firebasestorage.app",
+  messagingSenderId: "291289310768",
+  appId: "1:291289310768:web:d611629e90b6219016aff5"
+});
+db = firebase.database();
+dbRef = db.ref("adel_odeme_2026");
+
+function setSyncStatus(status, msg) {
+  var bar = document.getElementById("syncbar");
+  var txt = document.getElementById("synctxt");
+  bar.className = "syncbar " + status;
+  txt.textContent = msg;
+}
+
+// Firebase'den canlı dinle
+dbRef.on("value", function(snapshot) {
+  var data = snapshot.val();
+  paidSet = data || {};
+  setSyncStatus("synced", "Canli senkron aktif");
+  draw();
+}, function(err) {
+  setSyncStatus("error", "Baglanti hatasi");
+});
+
+function savePaid() {
+  setSyncStatus("syncing", "Kaydediliyor...");
+  dbRef.set(paidSet, function(err) {
+    if (err) {
+      setSyncStatus("error", "Kayit hatasi!");
+    } else {
+      setSyncStatus("synced", "Kaydedildi");
+    }
+  });
+}
 
 function tl(n) {
   return n.toLocaleString("tr-TR", {minimumFractionDigits:2, maximumFractionDigits:2});
@@ -226,6 +285,13 @@ document.getElementById("sinp").addEventListener("input", function() {
   draw();
 });
 
+function resetPaid() {
+  if (!confirm("Tum odeme kayitlari silinecek. Emin misiniz?")) return;
+  paidSet = {};
+  savePaid();
+  draw();
+}
+
 function draw() {
   var s = (pg - 1) * PAGE;
   var slice = fil.slice(s, s + PAGE);
@@ -256,6 +322,8 @@ function draw() {
   }
   tb.innerHTML = html;
   document.getElementById("cpill").textContent = fil.length + " musteri";
+  var paidCount = Object.keys(paidSet).filter(function(k){ return paidSet[k]; }).length;
+  document.getElementById("paidpill").textContent = paidCount + " odedi";
   drawPag();
   attachButtons();
   attachCheckboxes();
@@ -274,6 +342,7 @@ function attachCheckboxes() {
     chks[i].addEventListener("change", function() {
       var fi = parseInt(this.getAttribute("data-idx"));
       paidSet[fi] = this.checked;
+      savePaid();
       var lbl = this.nextElementSibling;
       var box = lbl.querySelector(".box");
       var txt = lbl.querySelector(".txt");
@@ -286,6 +355,8 @@ function attachCheckboxes() {
         txt.textContent = "Bekliyor";
         this.closest("tr").classList.remove("paid");
       }
+      var paidCount = Object.keys(paidSet).filter(function(k){ return paidSet[k]; }).length;
+      document.getElementById("paidpill").textContent = paidCount + " odedi";
     });
     // Sayfa ilk yüklendiğinde paid satırları yeşil yap
     var fi = parseInt(chks[i].getAttribute("data-idx"));
