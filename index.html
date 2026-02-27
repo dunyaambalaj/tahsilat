@@ -50,6 +50,23 @@ td{padding:10px 13px;font-size:.82rem;vertical-align:middle;}
 .pb:hover{border-color:var(--red);color:var(--red);}
 .pb.act{background:var(--dark);color:#fff;border-color:var(--dark);}
 .pb:disabled{opacity:.3;pointer-events:none;}
+.chkwrap{display:flex;align-items:center;justify-content:center;}
+.odchk{display:none;}
+.odlbl{display:flex;align-items:center;gap:6px;cursor:pointer;user-select:none;padding:4px 8px;border-radius:8px;border:1px solid var(--border);background:#fafafa;transition:all .15s;white-space:nowrap;}
+.odlbl .box{width:18px;height:18px;border-radius:5px;border:2px solid var(--border);background:#fff;display:flex;align-items:center;justify-content:center;flex-shrink:0;transition:all .15s;font-size:.72rem;}
+.odlbl span.txt{font-size:.7rem;font-weight:600;color:var(--muted);transition:color .15s;}
+.odchk:checked + .odlbl{background:#edfaf3;border-color:#a8dfc0;}
+.odchk:checked + .odlbl .box{background:var(--green);border-color:var(--green);color:#fff;}
+.odchk:checked + .odlbl .txt{color:var(--green);}
+tbody tr.paid{background:#edfaf3 !important;}
+tbody tr.paid:hover{background:#e0f5ea !important;}
+tbody tr.paid .tdm{color:#1a6b3c !important;}
+tbody tr.paid .tdt,.paid .tdnet{color:#1a6b3c !important;}
+@media(max-width:640px){
+  .odlbl{padding:8px 10px;}
+  .odlbl span.txt{font-size:.78rem;}
+  .odlbl .box{width:20px;height:20px;}
+}
 
 /* MOBİL: kart görünümü */
 @media(max-width:640px){
@@ -143,7 +160,7 @@ td{padding:10px 13px;font-size:.82rem;vertical-align:middle;}
 </div>
 <div class="srch"><span class="ico">&#128269;</span><input type="text" id="sinp" placeholder="Musteri adiyla arayin..."></div>
 <div class="tblwrap"><table><thead><tr>
-<th>#</th><th>Musteri Adi / Cari</th><th>Donem</th><th>Brut Tutar</th><th>Iskonto</th><th>Iskonto Sonrasi</th><th>Indir</th>
+<th>#</th><th>Musteri Adi / Cari</th><th>Donem</th><th>Brut Tutar</th><th>Iskonto</th><th>Iskonto Sonrasi</th><th style="text-align:center">Odeme Durumu</th><th>Indir</th>
 </tr></thead><tbody id="tbody"></tbody></table>
 <div class="pag" id="pag"></div></div>
 </div>
@@ -171,19 +188,36 @@ var IBAN = [
 var PAGE = 20;
 var fil = DATA.slice();
 var pg = 1;
+var paidSet = {};
 
 function tl(n) {
   return n.toLocaleString("tr-TR", {minimumFractionDigits:2, maximumFractionDigits:2});
 }
 
+function normalize(str) {
+  return str
+    .toLowerCase()
+    .replace(/\u0131/g, "i")
+    .replace(/\u0130/g, "i")
+    .replace(/\u015f/g, "s")
+    .replace(/\u015e/g, "s")
+    .replace(/\u00fc/g, "u")
+    .replace(/\u00dc/g, "u")
+    .replace(/\u00f6/g, "o")
+    .replace(/\u00d6/g, "o")
+    .replace(/\u00e7/g, "c")
+    .replace(/\u00c7/g, "c")
+    .replace(/\u011f/g, "g")
+    .replace(/\u011e/g, "g");
+}
 document.getElementById("sinp").addEventListener("input", function() {
-  var q = this.value.toLowerCase();
+  var q = normalize(this.value);
   if (q === "") {
     fil = DATA.slice();
   } else {
     fil = [];
     for (var i = 0; i < DATA.length; i++) {
-      if (DATA[i].musteri.toLowerCase().indexOf(q) >= 0) {
+      if (normalize(DATA[i].musteri).indexOf(q) >= 0) {
         fil.push(DATA[i]);
       }
     }
@@ -208,6 +242,13 @@ function draw() {
     html += "<td class=\"tdt\" data-label=\"Brut Tutar\">&#8378;" + tl(m.tutar) + "</td>";
     html += "<td class=\"tdisk\" data-label=\"Iskonto\"><span class=\"ichip\">%" + m.iskonto + "</span></td>";
     html += "<td class=\"tdnet\" data-label=\"Iskonto Sonrasi\">&#8378;" + tl(net) + "</td>";
+    var paid = paidSet[fi] || false;
+    html += "<td class=\"chkwrap\" data-label=\"Odeme Durumu\">";
+    html += "<input type=\"checkbox\" class=\"odchk\" id=\"chk" + fi + "\" data-idx=\"" + fi + "\"" + (paid ? " checked" : "") + ">";
+    html += "<label class=\"odlbl\" for=\"chk" + fi + "\">";
+    html += "<span class=\"box\">" + (paid ? "&#10003;" : "") + "</span>";
+    html += "<span class=\"txt\">" + (paid ? "Odedi" : "Bekliyor") + "</span>";
+    html += "</label></td>";
     html += "<td class=\"tdbtns\">";
     html += "<button class=\"bpng\" data-idx=\"" + fi + "\" data-tip=\"png\">&#128247; PNG</button>";
     html += "<button class=\"bpdf\" data-idx=\"" + fi + "\" data-tip=\"pdf\">&#128196; PDF</button>";
@@ -217,12 +258,40 @@ function draw() {
   document.getElementById("cpill").textContent = fil.length + " musteri";
   drawPag();
   attachButtons();
+  attachCheckboxes();
 }
 
 function attachButtons() {
   var btns = document.querySelectorAll(".bpng, .bpdf");
   for (var i = 0; i < btns.length; i++) {
     btns[i].addEventListener("click", handleDl);
+  }
+}
+
+function attachCheckboxes() {
+  var chks = document.querySelectorAll(".odchk");
+  for (var i = 0; i < chks.length; i++) {
+    chks[i].addEventListener("change", function() {
+      var fi = parseInt(this.getAttribute("data-idx"));
+      paidSet[fi] = this.checked;
+      var lbl = this.nextElementSibling;
+      var box = lbl.querySelector(".box");
+      var txt = lbl.querySelector(".txt");
+      if (this.checked) {
+        box.innerHTML = "&#10003;";
+        txt.textContent = "Odedi";
+        this.closest("tr").classList.add("paid");
+      } else {
+        box.innerHTML = "";
+        txt.textContent = "Bekliyor";
+        this.closest("tr").classList.remove("paid");
+      }
+    });
+    // Sayfa ilk yüklendiğinde paid satırları yeşil yap
+    var fi = parseInt(chks[i].getAttribute("data-idx"));
+    if (paidSet[fi]) {
+      chks[i].closest("tr").classList.add("paid");
+    }
   }
 }
 
