@@ -466,13 +466,55 @@ function dl(fi, tip, btn) {
       windowWidth: 900,
       logging: false,
       onclone: function(doc) {
+        // Tüm media query stillerini etkisiz kılmak için viewport meta'yı genişlet
+        var metas = doc.querySelectorAll("meta[name=viewport]");
+        for (var i = 0; i < metas.length; i++) {
+          metas[i].setAttribute("content", "width=900");
+        }
         var el = doc.getElementById("rc");
         el.style.width = "900px";
         el.style.minWidth = "900px";
+        el.style.maxWidth = "900px";
         el.style.left = "0";
         el.style.position = "relative";
         el.style.fontSize = "16px";
         el.style.webkitTextSizeAdjust = "none";
+        el.style.textSizeAdjust = "none";
+
+        // Kart içindeki tüm tabloları masaüstü moduna zorla
+        var tbls = el.querySelectorAll("table");
+        for (var t = 0; t < tbls.length; t++) {
+          tbls[t].style.display = "table";
+          tbls[t].style.width = "100%";
+        }
+        var ths = el.querySelectorAll("thead");
+        for (var th = 0; th < ths.length; th++) {
+          ths[th].style.display = "table-header-group";
+        }
+        var trs = el.querySelectorAll("tr");
+        for (var tr = 0; tr < trs.length; tr++) {
+          trs[tr].style.display = "table-row";
+        }
+        var tds = el.querySelectorAll("td, th");
+        for (var td = 0; td < tds.length; td++) {
+          tds[td].style.display = "table-cell";
+          tds[td].style.width = "auto";
+        }
+        // Grid layoutları düzelt
+        var grids = el.querySelectorAll(".bca, .bcig, .bcif");
+        for (var g = 0; g < grids.length; g++) {
+          var cls = grids[g].className;
+          if (cls.indexOf("bca") >= 0) {
+            grids[g].style.gridTemplateColumns = "1fr 1fr 1fr";
+          } else {
+            grids[g].style.gridTemplateColumns = "1fr 1fr";
+          }
+          grids[g].style.display = "grid";
+        }
+        // data-label pseudo elementleri gizle (mobil etiketler)
+        var style = doc.createElement("style");
+        style.textContent = "td::before { display: none !important; content: none !important; }";
+        doc.head.appendChild(style);
       }
     }).then(function(canvas) {
       var safe = "";
