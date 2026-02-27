@@ -177,6 +177,8 @@ td{padding:7px 10px;font-size:.76rem;vertical-align:middle;}
 .rtl{font-weight:600;}
 .rtr{text-align:right;font-family:'JetBrains Mono',monospace;font-weight:700;}
 .nr .rtr{color:#1a6b3c;}
+.rtisk{text-align:right;font-family:'JetBrains Mono',monospace;font-weight:700;color:#c0392b;}
+.nr .rtisk{color:#1a6b3c;}
 .rics{background:#fef5f4;border:1px solid #f0c8c4;color:#c0392b;font-size:.6rem;font-weight:700;padding:2px 6px;border-radius:7px;}
 .bcib{background:#f5f3ee;border-radius:9px;padding:14px 17px;margin-bottom:18px;}
 .bcit{font-size:.65rem;font-weight:700;text-transform:uppercase;letter-spacing:.1em;color:#888;margin-bottom:10px;}
@@ -639,10 +641,15 @@ function buildCard(gi){
   var ds = now.toLocaleDateString("tr-TR",{day:"2-digit",month:"long",year:"numeric"});
   var trs = "";
   for (var i=0;i<ODEME.length;i++){
-    var r=ODEME[i], f=net*(1-r.o/100), isN=(r.l==="Nakit");
+    var r=ODEME[i];
+    var odemeF = net*(1-r.o/100);
+    var iskFatura = net - odemeF;
+    var isN=(r.l==="Nakit");
     trs += "<tr"+(isN?" class=\"nr\"":" ")+">";
     trs += "<td class=\"rtl\">"+r.l+" <span class=\"rics\">%"+r.o+" indirim</span></td>";
-    trs += "<td class=\"rtr\">&#8378;"+tl(f)+"</td></tr>";
+    trs += "<td class=\"rtr\">&#8378;"+tl(odemeF)+"</td>";
+    trs += "<td class=\"rtisk\">&#8378;"+tl(iskFatura)+"</td>";
+    trs += "</tr>";
   }
   var ibs="";
   for (var j=0;j<IBAN.length;j++)
@@ -658,7 +665,7 @@ function buildCard(gi){
   card += "<div class=\"bcab bn\"><div class=\"ral\">Iskonto Sonrasi</div><div class=\"rav\">&#8378;"+tl(net)+"</div><div class=\"ras\">Odeme bazi tutar</div></div>";
   card += "</div>";
   card += "<div class=\"bott\">Odeme Secenekleri</div>";
-  card += "<table class=\"bctbl\"><thead><tr><th>Odeme Tipi</th><th style=\"text-align:right\">Tutar (KDV Dahil)</th></tr></thead><tbody>"+trs+"</tbody></table>";
+  card += "<table class=\"bctbl\"><thead><tr><th>Odeme Tipi</th><th style=\"text-align:right\">Odeme Tutari (KDV Dahil)</th><th style=\"text-align:right\">Alinacak Iskonto Faturasi</th></tr></thead><tbody>"+trs+"</tbody></table>";
   card += "<div class=\"bcib\"><div class=\"bcit\">Havale / EFT — DUNYA AMBALAJ SAN. ve TIC. A.S.</div><div class=\"bcig\">"+ibs+"</div></div>";
   card += "<div class=\"bcif2\">";
   card += "<div class=\"bcifb\"><div class=\"ril\">Nakit / Havale Son Tarih</div><div class=\"riv\">"+m.nakitTarih+" tarihine kadar IBAN'a havale/EFT yapilmasi gerekmektedir.</div></div>";
