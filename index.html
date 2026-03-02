@@ -994,7 +994,6 @@ function importExcel(inp){
       var ws = wb.Sheets[wb.SheetNames[0]];
       var rows = XLSX.utils.sheet_to_json(ws, {header:1, defval:""});
       if(rows.length < 2){ alert("Excel bos veya yanlis format!"); return; }
-      // Başlık satırını atla
       var added=0, updated=0;
       var list = MUSTERILER.slice();
       for(var i=1;i<rows.length;i++){
@@ -1003,25 +1002,34 @@ function importExcel(inp){
         if(!mAdi) continue;
         var tutar = parseFloat(String(r[4]||"0").replace(",","."));
         var isk   = parseFloat(String(r[5]||"0").replace(",","."));
-        // DATA'da bu müşteri var mı? Güncelle
+        // DATA güncelle
         var foundInData = false;
         for(var di=0;di<DATA.length;di++){
           if(normalize(DATA[di].musteri)===normalize(mAdi)){
             if(!isNaN(tutar)&&tutar>0) DATA[di].tutar=tutar;
-            if(!isNaN(isk)&&isk>0) DATA[di].iskonto=isk;
+            if(!isNaN(isk)&&isk>=0) DATA[di].iskonto=isk;
             foundInData=true; break;
           }
         }
-        // Müşteriler listesinde var mı?
+        // Müşteri listesi güncelle - TÜM ALANLAR üzerine yaz
         var foundInM = false;
         for(var mi=0;mi<list.length;mi++){
           if(normalize(list[mi].adi)===normalize(mAdi)){
-            // Sadece güncelle, dokunma
-            foundInM=true; updated++; break;
+            list[mi].adi  = mAdi;
+            list[mi].il   = String(r[1]||"").trim();
+            list[mi].ilce = String(r[2]||"").trim();
+            list[mi].tel  = String(r[3]||"").trim();
+            updated++; foundInM=true; break;
           }
         }
         if(!foundInM){
-          list.push({adi:mAdi, il:"", ilce:"", tel:""});
+          // Yeni müşteri - Firebase'e ekle
+          list.push({
+            adi:  mAdi,
+            il:   String(r[1]||"").trim(),
+            ilce: String(r[2]||"").trim(),
+            tel:  String(r[3]||"").trim()
+          });
           added++;
         }
         if(!foundInData){
@@ -1033,7 +1041,7 @@ function importExcel(inp){
       }
       musteriRef.set(list, function(err){
         if(!err){
-          alert(added+" yeni musteri eklendi, "+updated+" musteri guncellendi.\nListeyi yenilemek icin sayfayi yenileyin.");
+          alert(updated+" musteri guncellendi, "+added+" yeni musteri eklendi.\nTum alanlar (il, ilce, telefon, tutar, iskonto) guncellendi.");
           inp.value="";
         }
       });
