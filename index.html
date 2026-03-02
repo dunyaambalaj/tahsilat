@@ -639,11 +639,14 @@ function changeStatus(sel){
   tr.className=val==="paid"?"st-paid":val==="iptal"?"st-iptal":val==="partial"?"st-partial":val==="vadeli"?"st-vadeli":"";
   var tdm=tr.querySelector(".tdm");
   tdm.className="tdm"+(val==="paid"?" paid":val==="iptal"?" iptal":val==="partial"?" partial":val==="vadeli"?" vadeli":"");
-  // Ödeme dönemi otomatik doldur
-  if((val==="paid"||val==="partial") && !statusMap[gi].paidDonem){
-    var aylar=["Ocak","Subat","Mart","Nisan","Mayis","Haziran","Temmuz","Agustos","Eylul","Ekim","Kasim","Aralik"];
-    var now=new Date();
-    statusMap[gi].paidDonem = aylar[now.getMonth()]+" "+now.getFullYear();
+  // Ödeme dönemi otomatik doldur - aktif dönem ayarlardan gelir
+  if(val==="paid"||val==="partial"){
+    if(!statusMap[gi].paidDonem){
+      statusMap[gi].paidDonem = DONEM_CFG.donem + (DONEM_CFG.yil ? " " + DONEM_CFG.yil : "");
+    }
+  } else if(val==="bekliyor"||val==="iptal"||val==="vadeli"){
+    // Durum sıfırlanınca ödeme dönemi de sıfırla
+    statusMap[gi].paidDonem = "";
   }
   saveStatus();
   draw();
