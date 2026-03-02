@@ -512,7 +512,7 @@ function buildListePage(b){
         '<span class="pill pill-red" id="pIptal_'+b+'">0 iptal</span>'+
         '<span class="pill pill-vadeli" id="pVadeli_'+b+'">0 vadeli</span>'+
         '<span class="pill pill-bildirim" id="pBildirim_'+b+'">0 bildirim</span>'+
-        '<button onclick="exportExcel('+b+')" style="background:var(--green);color:#fff;border:none;border-radius:6px;padding:4px 11px;font-family:'Sora',sans-serif;font-size:.62rem;font-weight:700;cursor:pointer;">&#128190; Excel</button>'+
+        '<button onclick="exportExcel('+b+')" style="background:var(--green);color:#fff;border:none;border-radius:6px;padding:4px 11px;font-family:\'Sora\',sans-serif;font-size:.62rem;font-weight:700;cursor:pointer;">&#128190; Excel</button>'+
       '</div>'+
     '</div>'+
     '<div class="filters">'+
@@ -544,9 +544,9 @@ function buildMusterilerPage(b){
     '</div>'+
     '<div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:12px;align-items:center;">'+
       '<div class="srch" style="flex:1;min-width:200px;"><span class="ico">&#128269;</span><input type="text" id="mSinp_'+b+'" placeholder="Musteri adiyla arayin..."></div>'+
-      '<label style="background:var(--green);color:#fff;border:none;border-radius:8px;padding:7px 13px;font-family:'Sora',sans-serif;font-size:.7rem;font-weight:700;cursor:pointer;">&#128196; Excel Yukle'+
-        '<input type="file" id="xlsxInp_'+b+'" accept=".xlsx,.xls,.csv" style="display:none" onchange="importExcel(''+b+'',this)"></label>'+
-      '<button onclick="openMusteri('+b+',-1)" style="background:var(--dark);color:#fff;border:none;border-radius:8px;padding:7px 13px;font-family:'Sora',sans-serif;font-size:.7rem;font-weight:700;cursor:pointer;">+ Yeni Musteri</button>'+
+      '<label style="background:var(--green);color:#fff;border:none;border-radius:8px;padding:7px 13px;font-family:\'Sora\',sans-serif;font-size:.7rem;font-weight:700;cursor:pointer;">&#128196; Excel Yukle'+
+        '<input type="file" id="xlsxInp_'+b+'" accept=".xlsx,.xls,.csv" style="display:none" onchange="importExcel('+b+',this)"></label>'+
+      '<button onclick="openMusteri('+b+',-1)" style="background:var(--dark);color:#fff;border:none;border-radius:8px;padding:7px 13px;font-family:\'Sora\',sans-serif;font-size:.7rem;font-weight:700;cursor:pointer;">+ Yeni Musteri</button>'+
     '</div>'+
     '<div class="tblwrap"><table>'+
       '<thead><tr><th>#</th><th>Musteri Adi</th><th>Il</th><th>Ilce</th><th>Telefon</th><th>Son Aktivite</th><th></th></tr></thead>'+
