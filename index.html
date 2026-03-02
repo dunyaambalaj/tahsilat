@@ -449,10 +449,10 @@ function loadBolge(b){
 function buildAdminNav(){
   var nav=document.getElementById("mainNav"),html="";
   ALL_BOLGELER.forEach(function(b){
-    html+='<div class="nav-tab bolge-tab" id="btab_'+b+'" onclick="showBolge(''+b+'')">'+BOLGE_ADLARI[b]+'</div>';
+    html+='<div class="nav-tab bolge-tab" id="btab_'+b+'" onclick="showBolge(\''+b+'\')">'+BOLGE_ADLARI[b]+'</div>';
   });
   html+='<div class="nav-sep"></div>';
-  html+='<div class="nav-tab" id="tab_ayarlar" onclick="showPage('ayarlar')">&#9881; Ayarlar</div>';
+  html+='<div class="nav-tab" id="tab_ayarlar" onclick="showPage(\'ayarlar\')">&#9881; Ayarlar</div>';
   nav.innerHTML=html;
   ensureAyarlarPage();
 }
