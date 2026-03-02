@@ -277,7 +277,7 @@ td{padding:7px 10px;font-size:.76rem;vertical-align:middle;}
     <div class="login-logo">Adel &middot; Faber-Castell</div>
     <div class="login-title">Odeme Takip</div>
     <div class="login-sub">Bolge kodunuzu girin</div>
-    <input type="password" class="login-inp" id="loginInp" placeholder="&#9679;&#9679;&#9679;&#9679;" maxlength="6" onkeydown="if(event.key==='Enter')doLogin()">
+    <input type="password" class="login-inp" id="loginInp" placeholder="&#9679;&#9679;&#9679;&#9679;" maxlength="6" onkeydown="if(event.keyCode==13)doLogin()">
     <button class="login-btn" id="loginBtn" type="button" onclick="doLogin()">Giris Yap</button>
     <div class="login-err" id="loginErr" style="display:none;"></div>
     <div class="login-hint">35 Izmir &middot; 44 Malatya &middot; 25 Erzurum &middot; 27 Gaziantep</div>
@@ -449,17 +449,17 @@ function loadBolge(b){
 function buildAdminNav(){
   var nav=document.getElementById("mainNav"),html="";
   ALL_BOLGELER.forEach(function(b){
-    html+='<div class="nav-tab bolge-tab" id="btab_'+b+'" onclick="showBolge('+b+')">'+BOLGE_ADLARI[b]+'</div>';
+    html+='<div class="nav-tab bolge-tab" id="btab_'+b+'" onclick="showBolge(''+b+'')">'+BOLGE_ADLARI[b]+'</div>';
   });
   html+='<div class="nav-sep"></div>';
-  html+='<div class="nav-tab" id="tab_ayarlar" onclick="showPage(\'ayarlar\')">&#9881; Ayarlar</div>';
+  html+='<div class="nav-tab" id="tab_ayarlar" onclick="showPage('ayarlar')">&#9881; Ayarlar</div>';
   nav.innerHTML=html;
   ensureAyarlarPage();
 }
 function buildBolgeNav(b){
   var nav=document.getElementById("mainNav");
-  var html='<div class="nav-tab active" id="tab_liste_'+b+'" onclick="showPage(\'liste_'+b+'\')">&#128203; Liste</div>';
-  html+='<div class="nav-tab" id="tab_musteriler_'+b+'" onclick="showPage(\'musteriler_'+b+'\')">&#128100; Musteriler</div>';
+  var html='<div class="nav-tab active" id="tab_liste_'+b+'" onclick="showPage('liste_'+b+'')">&#128203; Liste</div>';
+  html+='<div class="nav-tab" id="tab_musteriler_'+b+'" onclick="showPage('musteriler_'+b+'')">&#128100; Musteriler</div>';
   nav.innerHTML=html;
 }
 function showBolge(b){
@@ -512,18 +512,18 @@ function buildListePage(b){
         '<span class="pill pill-red" id="pIptal_'+b+'">0 iptal</span>'+
         '<span class="pill pill-vadeli" id="pVadeli_'+b+'">0 vadeli</span>'+
         '<span class="pill pill-bildirim" id="pBildirim_'+b+'">0 bildirim</span>'+
-        '<button onclick="exportExcel('+b+')" style="background:var(--green);color:#fff;border:none;border-radius:6px;padding:4px 11px;font-family:Sora,sans-serif;font-size:.62rem;font-weight:700;cursor:pointer;">&#128190; Excel</button>'+
+        '<button onclick="exportExcel(''+b+'')" style="background:var(--green);color:#fff;border:none;border-radius:6px;padding:4px 11px;font-family:Sora,sans-serif;font-size:.62rem;font-weight:700;cursor:pointer;">&#128190; Excel</button>'+
       '</div>'+
     '</div>'+
     '<div class="filters">'+
       '<div class="srch"><span class="ico">&#128269;</span><input type="text" id="sinp_'+b+'" placeholder="Musteri adiyla arayin..."></div>'+
-      '<button class="filt-btn fAll active" id="fAll_'+b+'" onclick="setFilter('+b+',0)">Tumumu</button>'+
-      '<button class="filt-btn f-bekliyor" id="fBek_'+b+'" onclick="setFilter('+b+',1)">Bekliyor</button>'+
-      '<button class="filt-btn f-paid" id="fPaid_'+b+'" onclick="setFilter('+b+',2)">Odedi</button>'+
-      '<button class="filt-btn f-partial" id="fPart_'+b+'" onclick="setFilter('+b+',3)">Kismi</button>'+
-      '<button class="filt-btn f-iptal" id="fIptal_'+b+'" onclick="setFilter('+b+',4)">Iptal</button>'+
-      '<button class="filt-btn f-vadeli" id="fVadeli_'+b+'" onclick="setFilter('+b+',5)">Vadeli</button>'+
-      '<button class="filt-btn f-bildirim" id="fBildirim_'+b+'" onclick="setFilter('+b+',6)">Bildirim</button>'+
+      '<button class="filt-btn fAll active" id="fAll_'+b+'" onclick="setFilter(''+b+'',0)">Tumumu</button>'+
+      '<button class="filt-btn f-bekliyor" id="fBek_'+b+'" onclick="setFilter(''+b+'',1)">Bekliyor</button>'+
+      '<button class="filt-btn f-paid" id="fPaid_'+b+'" onclick="setFilter(''+b+'',2)">Odedi</button>'+
+      '<button class="filt-btn f-partial" id="fPart_'+b+'" onclick="setFilter(''+b+'',3)">Kismi</button>'+
+      '<button class="filt-btn f-iptal" id="fIptal_'+b+'" onclick="setFilter(''+b+'',4)">Iptal</button>'+
+      '<button class="filt-btn f-vadeli" id="fVadeli_'+b+'" onclick="setFilter(''+b+'',5)">Vadeli</button>'+
+      '<button class="filt-btn f-bildirim" id="fBildirim_'+b+'" onclick="setFilter(''+b+'',6)">Bildirim</button>'+
     '</div>'+
     '<div class="tblwrap"><table>'+
       '<thead><tr><th>#</th><th>Musteri</th><th>Brut Tutar</th><th>Cari Iskonto</th><th>Net Tutar</th><th>Durum</th><th>Odeme Donemi</th><th style="text-align:center">Bildirim</th><th>Indir</th></tr></thead>'+
@@ -545,8 +545,8 @@ function buildMusterilerPage(b){
     '<div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:12px;align-items:center;">'+
       '<div class="srch" style="flex:1;min-width:200px;"><span class="ico">&#128269;</span><input type="text" id="mSinp_'+b+'" placeholder="Musteri adiyla arayin..."></div>'+
       '<label style="background:var(--green);color:#fff;border:none;border-radius:8px;padding:7px 13px;font-family:Sora,sans-serif;font-size:.7rem;font-weight:700;cursor:pointer;">&#128196; Excel Yukle'+
-        '<input type="file" id="xlsxInp_'+b+'" accept=".xlsx,.xls,.csv" style="display:none" onchange="importExcel('+b+',this)"></label>'+
-      '<button onclick="openMusteri('+b+',-1)" style="background:var(--dark);color:#fff;border:none;border-radius:8px;padding:7px 13px;font-family:Sora,sans-serif;font-size:.7rem;font-weight:700;cursor:pointer;">+ Yeni Musteri</button>'+
+        '<input type="file" id="xlsxInp_'+b+'" accept=".xlsx,.xls,.csv" style="display:none" onchange="importExcel(''+b+'',this)"></label>'+
+      '<button onclick="openMusteri(''+b+'',-1)" style="background:var(--dark);color:#fff;border:none;border-radius:8px;padding:7px 13px;font-family:Sora,sans-serif;font-size:.7rem;font-weight:700;cursor:pointer;">+ Yeni Musteri</button>'+
     '</div>'+
     '<div class="tblwrap"><table>'+
       '<thead><tr><th>#</th><th>Musteri Adi</th><th>Il</th><th>Ilce</th><th>Telefon</th><th>Son Aktivite</th><th></th></tr></thead>'+
@@ -566,7 +566,7 @@ function buildAyarlarPage(){
       '<div class="lock-title">Ayarlar</div>'+
       '<div class="lock-sub">Admin sifresi gereklidir.</div>'+
       '<div class="lock-form">'+
-        '<input type="password" class="lock-inp" id="lockInp" placeholder="&#9679;&#9679;&#9679;&#9679;" onkeydown="if(event.key==='Enter')checkPass()">'+
+        '<input type="password" class="lock-inp" id="lockInp" placeholder="&#9679;&#9679;&#9679;&#9679;" onkeydown="if(event.keyCode==13)checkPass()">'+
         '<button class="lock-btn" onclick="checkPass()">Giris</button>'+
       '</div>'+
       '<div class="lock-err" id="lockErr">Yanlis sifre.</div>'+
@@ -744,12 +744,12 @@ function drawPag(b){
   var pag=document.getElementById("pag_"+b);if(!pag)return;
   if(total<=1&&fil.length<=20){pag.innerHTML="";return;}
   var s=(pg-1)*20,e=Math.min(s+20,fil.length);
-  var h="<button class=\"pb\" "+(pg<=1?"disabled":"")+' onclick="STATE['+b+'].pg='+(pg-1)+';drawListe('+b+')">&#8592;</button>';
+  var h="<button class=\"pb\" "+(pg<=1?"disabled":"")+' onclick="STATE[''+b+''].pg='+(pg-1)+';drawListe(''+b+'')">&#8592;</button>';
   for(var i=1;i<=total;i++){
-    if(i===1||i===total||Math.abs(i-pg)<=2)h+='<button class="pb'+(i===pg?" act":"")+'" onclick="STATE['+b+'].pg='+i+';drawListe('+b+')">'+i+'</button>';
+    if(i===1||i===total||Math.abs(i-pg)<=2)h+='<button class="pb'+(i===pg?" act":"")+'" onclick="STATE[''+b+''].pg='+i+';drawListe(''+b+'')">'+i+'</button>';
     else if(Math.abs(i-pg)===3)h+='<span style="padding:0 3px;color:var(--muted)">...</span>';
   }
-  h+="<button class=\"pb\" "+(pg>=total?"disabled":"")+' onclick="STATE['+b+'].pg='+(pg+1)+';drawListe('+b+')">&#8594;</button>';
+  h+="<button class=\"pb\" "+(pg>=total?"disabled":"")+' onclick="STATE[''+b+''].pg='+(pg+1)+';drawListe(''+b+'')">&#8594;</button>';
   pag.innerHTML='<span class="paginfo">'+(s+1)+"&ndash;"+e+" / "+fil.length+' gosteriliyor</span><div class="pagbtns">'+h+'</div>';
 }
 
@@ -773,9 +773,9 @@ function drawMusteriler(b){
   if(!pag)return;
   if(total<=1){pag.innerHTML="";return;}
   var ss=(pg-1)*20,ee=Math.min(ss+20,mFil[b].length);
-  var h="<button class=\"pb\" "+(pg<=1?"disabled":"")+' onclick="mPg['+b+']='+(pg-1)+';drawMusteriler('+b+')">&#8592;</button>';
-  for(var j=1;j<=total;j++)if(j===1||j===total||Math.abs(j-pg)<=2)h+='<button class="pb'+(j===pg?" act":"")+'" onclick="mPg['+b+'\']='+j+';drawMusteriler('+b+')">'+j+'</button>';
-  h+="<button class=\"pb\" "+(pg>=total?"disabled":"")+' onclick="mPg['+b+']='+(pg+1)+';drawMusteriler('+b+')">&#8594;</button>';
+  var h="<button class=\"pb\" "+(pg<=1?"disabled":"")+' onclick="mPg[''+b+'']='+(pg-1)+';drawMusteriler(''+b+'')">&#8592;</button>';
+  for(var j=1;j<=total;j++)if(j===1||j===total||Math.abs(j-pg)<=2)h+='<button class="pb'+(j===pg?" act":"")+'" onclick="mPg[''+b+'\']='+j+';drawMusteriler(''+b+'')">'+j+'</button>';
+  h+="<button class=\"pb\" "+(pg>=total?"disabled":"")+' onclick="mPg[''+b+'']='+(pg+1)+';drawMusteriler(''+b+'')">&#8594;</button>';
   pag.innerHTML='<span class="paginfo">'+(ss+1)+"&ndash;"+ee+" / "+mFil[b].length+' gosteriliyor</span><div class="pagbtns">'+h+'</div>';
 }
 function getSonAktivite(b,adi){
