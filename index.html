@@ -346,46 +346,39 @@ function escH(s){return String(s||"").replace(/&/g,"&amp;").replace(/</g,"&lt;")
 function setSyncStatus(cls,msg){var b=document.getElementById("syncbar");if(b){b.className="syncbar "+cls;document.getElementById("synctxt").textContent=msg;}}
 
 // ── GİRİŞ ──
-
 function doLogin(){
-  try{
-    var inp=document.getElementById("loginInp");
-    var err=document.getElementById("loginErr");
-    if(!inp) return;
-
-    var v=(inp.value||"").toString().trim();   // trim spaces
-    v=v.replace(/[^0-9]/g,"");                 // allow only numbers
-
+  try {
+    var inp = document.getElementById("loginInp");
+    var err = document.getElementById("loginErr");
+    if(!inp){ console.error("loginInp element not found!"); return; }
+    var v = inp.value.trim();
+    console.log("doLogin called, v=", v);
     if(!v){
-      if(err){ err.textContent="Kod giriniz"; err.style.display="block"; setTimeout(function(){err.style.display="none";},2000); }
+      if(err){ err.textContent="Kod giriniz."; err.style.display="block"; setTimeout(function(){err.style.display="none";},2000); }
       inp.focus();
       return;
     }
-
     if(v===ADMIN_PASS){
       currentUser={isAdmin:true,kod:"8554"};
       console.log("Admin login OK");
       startApp();
       return;
     }
-
     if(BOLGELER[v]){
       currentUser={isAdmin:false,kod:v,bolge:BOLGELER[v].kod};
       console.log("Bolge login OK:", v);
       startApp();
       return;
     }
-
-    if(err){ err.textContent="Geçersiz kod. (35 / 44 / 25 / 27 veya 8554)"; err.style.display="block"; }
+    if(err){ err.textContent="Gecersiz kod. (35/44/25/27 veya 8554)"; err.style.display="block"; }
     inp.value="";
     inp.focus();
     setTimeout(function(){ if(err) err.style.display="none"; },3000);
-  }catch(ex){
-    console.error("doLogin error:",ex);
-    alert("Giriş hatası: "+ex.message);
+  } catch(ex) {
+    console.error("doLogin error:", ex);
+    alert("Giris hatasi: " + ex.message);
   }
 }
-
 function doLogout(){
   ALL_BOLGELER.forEach(function(b){
     if(STATE[b].stRef)STATE[b].stRef.off();
@@ -992,7 +985,8 @@ function handleWA(b,gi,btn){
 
 // ── MODAL ──
 document.addEventListener("DOMContentLoaded",function(){
-  document.getElementById("loginInp").focus();
+  var loginInput = document.getElementById("loginInp");
+  if(loginInput) loginInput.focus();
   var modal=document.createElement("div");
   modal.id="mModal";
   modal.style.cssText="display:none;position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:9998;align-items:center;justify-content:center;";
