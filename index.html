@@ -512,18 +512,18 @@ function buildListePage(b){
         '<span class="pill pill-red" id="pIptal_'+b+'">0 iptal</span>'+
         '<span class="pill pill-vadeli" id="pVadeli_'+b+'">0 vadeli</span>'+
         '<span class="pill pill-bildirim" id="pBildirim_'+b+'">0 bildirim</span>'+
-        '<button onclick="exportExcel(\'"+b+"\')" style="background:var(--green);color:#fff;border:none;border-radius:6px;padding:4px 11px;font-family:\'Sora\',sans-serif;font-size:.62rem;font-weight:700;cursor:pointer;">&#128190; Excel</button>'+
+        '<button onclick="exportExcel(\''+b+'\')" style="background:var(--green);color:#fff;border:none;border-radius:6px;padding:4px 11px;font-family:\'Sora\',sans-serif;font-size:.62rem;font-weight:700;cursor:pointer;">&#128190; Excel</button>'+
       '</div>'+
     '</div>'+
     '<div class="filters">'+
       '<div class="srch"><span class="ico">&#128269;</span><input type="text" id="sinp_'+b+'" placeholder="Musteri adiyla arayin..."></div>'+
-      '<button class="filt-btn fAll active" id="fAll_'+b+'" onclick="setFilter(\'"+b+"\',0)">Tumumu</button>'+
-      '<button class="filt-btn f-bekliyor" id="fBek_'+b+'" onclick="setFilter(\'"+b+"\',1)">Bekliyor</button>'+
-      '<button class="filt-btn f-paid" id="fPaid_'+b+'" onclick="setFilter(\'"+b+"\',2)">Odedi</button>'+
-      '<button class="filt-btn f-partial" id="fPart_'+b+'" onclick="setFilter(\'"+b+"\',3)">Kismi</button>'+
-      '<button class="filt-btn f-iptal" id="fIptal_'+b+'" onclick="setFilter(\'"+b+"\',4)">Iptal</button>'+
-      '<button class="filt-btn f-vadeli" id="fVadeli_'+b+'" onclick="setFilter(\'"+b+"\',5)">Vadeli</button>'+
-      '<button class="filt-btn f-bildirim" id="fBildirim_'+b+'" onclick="setFilter(\'"+b+"\',6)">Bildirim</button>'+
+      '<button class="filt-btn fAll active" id="fAll_'+b+'" onclick="setFilter(\''+b+'\',0)">Tumumu</button>'+
+      '<button class="filt-btn f-bekliyor" id="fBek_'+b+'" onclick="setFilter(\''+b+'\',1)">Bekliyor</button>'+
+      '<button class="filt-btn f-paid" id="fPaid_'+b+'" onclick="setFilter(\''+b+'\',2)">Odedi</button>'+
+      '<button class="filt-btn f-partial" id="fPart_'+b+'" onclick="setFilter(\''+b+'\',3)">Kismi</button>'+
+      '<button class="filt-btn f-iptal" id="fIptal_'+b+'" onclick="setFilter(\''+b+'\',4)">Iptal</button>'+
+      '<button class="filt-btn f-vadeli" id="fVadeli_'+b+'" onclick="setFilter(\''+b+'\',5)">Vadeli</button>'+
+      '<button class="filt-btn f-bildirim" id="fBildirim_'+b+'" onclick="setFilter(\''+b+'\',6)">Bildirim</button>'+
     '</div>'+
     '<div class="tblwrap"><table>'+
       '<thead><tr><th>#</th><th>Musteri</th><th>Brut Tutar</th><th>Cari Iskonto</th><th>Net Tutar</th><th>Durum</th><th>Odeme Donemi</th><th style="text-align:center">Bildirim</th><th>Indir</th></tr></thead>'+
@@ -545,8 +545,8 @@ function buildMusterilerPage(b){
     '<div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:12px;align-items:center;">'+
       '<div class="srch" style="flex:1;min-width:200px;"><span class="ico">&#128269;</span><input type="text" id="mSinp_'+b+'" placeholder="Musteri adiyla arayin..."></div>'+
       '<label style="background:var(--green);color:#fff;border:none;border-radius:8px;padding:7px 13px;font-family:\'Sora\',sans-serif;font-size:.7rem;font-weight:700;cursor:pointer;">&#128196; Excel Yukle'+
-        '<input type="file" id="xlsxInp_'+b+'" accept=".xlsx,.xls,.csv" style="display:none" onchange="importExcel(\'"+b+"\',this)"></label>'+
-      '<button onclick="openMusteri(\'"+b+"\',-1)" style="background:var(--dark);color:#fff;border:none;border-radius:8px;padding:7px 13px;font-family:\'Sora\',sans-serif;font-size:.7rem;font-weight:700;cursor:pointer;">+ Yeni Musteri</button>'+
+        '<input type="file" id="xlsxInp_'+b+'" accept=".xlsx,.xls,.csv" style="display:none" onchange="importExcel(\''+b+'\',this)"></label>'+
+      '<button onclick="openMusteri(\''+b+'\',-1)" style="background:var(--dark);color:#fff;border:none;border-radius:8px;padding:7px 13px;font-family:\'Sora\',sans-serif;font-size:.7rem;font-weight:700;cursor:pointer;">+ Yeni Musteri</button>'+
     '</div>'+
     '<div class="tblwrap"><table>'+
       '<thead><tr><th>#</th><th>Musteri Adi</th><th>Il</th><th>Ilce</th><th>Telefon</th><th>Son Aktivite</th><th></th></tr></thead>'+
@@ -646,34 +646,34 @@ function drawListe(b){
     var paidDonem=stObj.paidDonem||"",isBild=st.bildirimMap[gi2]||false;
     var trCls=stVal==="paid"?" class=\"st-paid\"":stVal==="iptal"?" class=\"st-iptal\"":stVal==="partial"?" class=\"st-partial\"":stVal==="vadeli"?" class=\"st-vadeli\"":"";
     var nCls=stVal==="paid"?" paid":stVal==="iptal"?" iptal":stVal==="partial"?" partial":stVal==="vadeli"?" vadeli":"";
-    html+="<tr"+trCls+"><td class=\"tdno\">"+(fi+1)+"</td>";
-    html+="<td class=\"tdm"+nCls+"\" data-label=\"Musteri\">"+escH(m.musteri)+"</td>";
+    html+="<tr'+trCls+'><td class=\"tdno\">"+(fi+1)+"</td>";
+    html+="<td class=\"tdm'+nCls+'\" data-label=\"Musteri\">"+escH(m.musteri)+"</td>";
     html+="<td class=\"tdt\" data-label=\"Brut\">&#8378;"+tl(m.tutar)+"</td>";
-    html+="<td data-label=\"Iskonto\"><input class=\"isk-edit-inp\" type=\"number\" min=\"0\" max=\"99\" value=\""+custIsk+"\" data-b=\""+b+"\" data-gidx=\""+gi2+"\" data-tutar=\""+m.tutar+"\" onchange=\"changeIskonto(this)\"></td>";
+    html+="<td data-label=\"Iskonto\"><input class=\"isk-edit-inp\" type=\"number\" min=\"0\" max=\"99\" value=\"'+custIsk+'\" data-b=\"'+b+'\" data-gidx=\"'+gi2+'\" data-tutar=\""+m.tutar+"\" onchange=\"changeIskonto(this)\"></td>";
     html+="<td class=\"tdnet"+(stVal==="iptal"?" iptal":"")+"\" data-label=\"Net\">&#8378;"+tl(net)+"</td>";
     html+="<td class=\"status-cell\" data-label=\"Durum\">";
-    html+="<select class=\"status-select "+stVal+"\" data-b=\""+b+"\" data-gidx=\""+gi2+"\" onchange=\"changeStatus(this)\">";
+    html+="<select class=\"status-select '+stVal+'\" data-b=\"'+b+'\" data-gidx=\"'+gi2+'\" onchange=\"changeStatus(this)\">";
     ["bekliyor","paid","partial","iptal","vadeli"].forEach(function(v,vi){
       var labels=["&#9679; Bekliyor","&#10003; Odedi","&#9680; Kismi","&#10005; Iptal","&#128197; Vadeli"];
-      html+="<option value=\""+v+"\""+( stVal===v?" selected":"")+">"+labels[vi]+"</option>";
+      html+="<option value=\"'+v+'\""+( stVal===v?" selected":"")+">"+labels[vi]+"</option>";
     });
     html+="</select>";
     html+="<div class=\"partial-wrap"+(stVal==="partial"?" show":"")+"\">";
-    html+="<input class=\"partial-inp\" type=\"text\" placeholder=\"Odenen tutar\" value=\""+escH(partial)+"\" data-b=\""+b+"\" data-gidx=\""+gi2+"\" onchange=\"changePartial(this)\"></div>";
+    html+="<input class=\"partial-inp\" type=\"text\" placeholder=\"Odenen tutar\" value=\""+escH(partial)+"\" data-b=\"'+b+'\" data-gidx=\"'+gi2+'\" onchange=\"changePartial(this)\"></div>";
     html+="<div class=\"vadeli-wrap"+(stVal==="vadeli"?" show":"")+"\">";
-    html+="<input class=\"vadeli-inp\" type=\"date\" value=\""+vadeliT+"\" data-b=\""+b+"\" data-gidx=\""+gi2+"\" onchange=\"changeVadeli(this)\"></div>";
+    html+="<input class=\"vadeli-inp\" type=\"date\" value=\"'+vadeliT+'\" data-b=\"'+b+'\" data-gidx=\"'+gi2+'\" onchange=\"changeVadeli(this)\"></div>";
     html+="</td>";
     html+="<td class=\"paid-donem-cell\" data-label=\"Odeme Donemi\">";
-    if(stVal==="paid"||stVal==="partial")html+="<input class=\"paid-donem-inp\" type=\"text\" placeholder=\"Donem...\" value=\""+escH(paidDonem)+"\" data-b=\""+b+"\" data-gidx=\""+gi2+"\" onchange=\"changePaidDonem(this)\">";
+    if(stVal==="paid"||stVal==="partial")html+="<input class=\"paid-donem-inp\" type=\"text\" placeholder=\"Donem...\" value=\""+escH(paidDonem)+"\" data-b=\"'+b+'\" data-gidx=\"'+gi2+'\" onchange=\"changePaidDonem(this)\">";
     else html+="<span style=\"font-size:.65rem;color:var(--muted)\">—</span>";
     html+="</td>";
     html+="<td style=\"text-align:center\" data-label=\"Bildirim\">";
-    html+="<input type=\"checkbox\" class=\"bildchk\" id=\"bild_"+b+"_"+gi2+"\" data-b=\""+b+"\" data-gidx=\""+gi2+"\""+( isBild?" checked":"")+">"+
-          "<label class=\"bildlbl\" for=\"bild_"+b+"_"+gi2+"\"><span class=\"bild-box\">"+(isBild?"&#10003;":"")+
+    html+="<input type=\"checkbox\" class=\"bildchk\" id=\"bild_'+b+'_'+gi2+'\" data-b=\"'+b+'\" data-gidx=\"'+gi2+'\""+( isBild?" checked":"")+">"+
+          "<label class=\"bildlbl\" for=\"bild_'+b+'_'+gi2+'\"><span class=\"bild-box\">"+(isBild?"&#10003;":"")+
           "</span><span class=\"bild-txt\">"+(isBild?"Yapildi":"Yapilmadi")+"</span></label></td>";
-    html+="<td class=\"tdbtns\"><button class=\"bpng\" data-b=\""+b+"\" data-idx=\""+gi2+"\" data-tip=\"png\">&#128247; PNG</button>";
-    html+="<button class=\"bpdf\" data-b=\""+b+"\" data-idx=\""+gi2+"\" data-tip=\"pdf\">&#128196; PDF</button>";
-    if(st.phones[gi2])html+="<button class=\"bwa\" data-b=\""+b+"\" data-idx=\""+gi2+"\">&#128242; WA</button>";
+    html+="<td class=\"tdbtns\"><button class=\"bpng\" data-b=\"'+b+'\" data-idx=\"'+gi2+'\" data-tip=\"png\">&#128247; PNG</button>";
+    html+="<button class=\"bpdf\" data-b=\"'+b+'\" data-idx=\"'+gi2+'\" data-tip=\"pdf\">&#128196; PDF</button>";
+    if(st.phones[gi2])html+="<button class=\"bwa\" data-b=\"'+b+'\" data-idx=\"'+gi2+'\">&#128242; WA</button>";
     html+="</td></tr>";
   }
   tb.innerHTML=html;
@@ -691,17 +691,17 @@ function drawListe(b){
 function updateDonemBaslik(b){var el=document.getElementById("dBaslik_"+b);if(el&&STATE[b].donemCfg.donem)el.textContent=STATE[b].donemCfg.donem+" "+STATE[b].donemCfg.yil+" Odeme Listesi";}
 
 function attachListeners(b){
-  document.querySelectorAll(".bpng[data-b='"+b+"'],.bpdf[data-b='"+b+"']").forEach(function(btn){
+  document.querySelectorAll(".bpng[data-b=''+b+''],.bpdf[data-b=''+b+'']").forEach(function(btn){
     btn.onclick=function(){dl(b,parseInt(this.getAttribute("data-idx")),this.getAttribute("data-tip"),this);};
   });
-  document.querySelectorAll(".bwa[data-b='"+b+"']").forEach(function(btn){
+  document.querySelectorAll(".bwa[data-b=''+b+'']").forEach(function(btn){
     btn.onclick=function(){handleWA(b,parseInt(this.getAttribute("data-idx")),this);};
   });
-  document.querySelectorAll(".bildchk[data-b='"+b+"']").forEach(function(chk){
+  document.querySelectorAll(".bildchk[data-b=''+b+'']").forEach(function(chk){
     chk.onchange=function(){
       var gi=parseInt(this.getAttribute("data-gidx"));
       STATE[b].bildirimMap[gi]=this.checked;
-      var lbl=document.querySelector("label[for='bild_"+b+"_"+gi+"']");
+      var lbl=document.querySelector("label[for='bild_'+b+'_'+gi+'']");
       if(lbl){lbl.querySelector(".bild-box").innerHTML=this.checked?"&#10003;":"";lbl.querySelector(".bild-txt").textContent=this.checked?"Yapildi":"Yapilmadi";}
       var cnt=Object.keys(STATE[b].bildirimMap).filter(function(k){return STATE[b].bildirimMap[k];}).length;
       var pill=document.getElementById("pBildirim_"+b);if(pill)pill.textContent=cnt+" bildirim";
@@ -744,13 +744,13 @@ function drawPag(b){
   var pag=document.getElementById("pag_"+b);if(!pag)return;
   if(total<=1&&fil.length<=20){pag.innerHTML="";return;}
   var s=(pg-1)*20,e=Math.min(s+20,fil.length);
-  var h="<button class=\"pb\" "+(pg<=1?"disabled":"")+' onclick="STATE[\'"+b+"\'].pg='+(pg-1)+';drawListe(\'"+b+"\')">&#8592;</button>';
+  var h="<button class=\"pb\" "+(pg<=1?"disabled":"")+' onclick="STATE[\''+b+'\'].pg='+(pg-1)+';drawListe(\''+b+'\')">&#8592;</button>';
   for(var i=1;i<=total;i++){
-    if(i===1||i===total||Math.abs(i-pg)<=2)h+='<button class="pb'+(i===pg?" act":"")+'" onclick="STATE[\'"+b+"\'].pg='+i+';drawListe(\'"+b+"\')">'+i+'</button>';
+  for(var j=1;j<=total;j++)if(j===1||j===total||Math.abs(j-pg)<=2)h+='<button class="pb'+(j===pg?" act":"")+'" onclick="STATE[\''+b+'\'].pg='+j+';drawListe(\''+b+'\')">'+j+'</button>';
     else if(Math.abs(i-pg)===3)h+='<span style="padding:0 3px;color:var(--muted)">...</span>';
   }
-  h+="<button class=\"pb\" "+(pg>=total?"disabled":"")+' onclick="STATE[\'"+b+"\'].pg='+(pg+1)+';drawListe(\'"+b+"\')">&#8594;</button>';
-  pag.innerHTML='<span class="paginfo">'+(s+1)+"&ndash;"+e+" / "+fil.length+' gosteriliyor</span><div class="pagbtns">'+h+'</div>';
+  h+="<button class=\"pb\" "+(pg>=total?"disabled":"")+' onclick="mPg[\''+b+'\']='+(pg+1)+';drawMusteriler(\''+b+'\')">&#8594;</button>';
+  pag.innerHTML='<span class="paginfo">'+(s+1)+"&ndash;'+e+' / "+fil.length+' gosteriliyor</span><div class="pagbtns">'+h+'</div>';
 }
 
 // ── MÜŞTERİLER ──
@@ -765,18 +765,18 @@ function drawMusteriler(b){
     html+="<tr><td class=\"tdno\">"+(fi+1)+"</td><td class=\"tdm\">"+escH(m.adi||"")+"</td>";
     html+="<td class=\"tdd\">"+escH(m.il||"—")+"</td><td class=\"tdd\">"+escH(m.ilce||"—")+"</td>";
     html+="<td><span style=\"font-family:\'JetBrains Mono\',monospace;font-size:.68rem;\">"+escH(m.tel||"—")+"</span></td>";
-    html+="<td>"+sAkt+"</td>";
-    html+="<td><button onclick=\"openMusteri('"+b+"',"+fi+")\" style=\"background:none;border:1px solid var(--border);border-radius:5px;padding:3px 8px;font-size:.63rem;font-weight:600;cursor:pointer;color:var(--muted)\">Duzenle</button></td></tr>";
+    html+="<td>'+sAkt+'</td>";
+    html+="<td><button onclick=\"openMusteri(''+b+'','+fi+')\" style=\"background:none;border:1px solid var(--border);border-radius:5px;padding:3px 8px;font-size:.63rem;font-weight:600;cursor:pointer;color:var(--muted)\">Duzenle</button></td></tr>";
   }
   tb.innerHTML=html;
   var total=Math.ceil(mFil[b].length/20),pg=mPg[b]||1,pag=document.getElementById("mPag_"+b);
   if(!pag)return;
   if(total<=1){pag.innerHTML="";return;}
   var ss=(pg-1)*20,ee=Math.min(ss+20,mFil[b].length);
-  var h="<button class=\"pb\" "+(pg<=1?"disabled":"")+' onclick="mPg[\'"+b+"\']='+(pg-1)+';drawMusteriler(\'"+b+"\')">&#8592;</button>';
-  for(var j=1;j<=total;j++)if(j===1||j===total||Math.abs(j-pg)<=2)h+='<button class="pb'+(j===pg?" act":"")+'" onclick="mPg[''+b+'\']='+j+';drawMusteriler(\'"+b+"\')">'+j+'</button>';
-  h+="<button class=\"pb\" "+(pg>=total?"disabled":"")+' onclick="mPg[\'"+b+"\']='+(pg+1)+';drawMusteriler(\'"+b+"\')">&#8594;</button>';
-  pag.innerHTML='<span class="paginfo">'+(ss+1)+"&ndash;"+ee+" / "+mFil[b].length+' gosteriliyor</span><div class="pagbtns">'+h+'</div>';
+  var h="<button class=\"pb\" "+(pg<=1?"disabled":"")+' onclick="mPg[\''+b+'\']='+(pg-1)+';drawMusteriler(\''+b+'\')">&#8592;</button>';
+  for(var j=1;j<=total;j++)if(j===1||j===total||Math.abs(j-pg)<=2)h+='<button class="pb'+(j===pg?" act":"")+'" onclick="mPg[\''+b+'\']='+j+';drawMusteriler(\''+b+'\')">'+j+'</button>';
+  h+="<button class=\"pb\" "+(pg>=total?"disabled":"")+' onclick="mPg[\''+b+'\']='+(pg+1)+';drawMusteriler(\''+b+'\')">&#8594;</button>';
+  pag.innerHTML='<span class="paginfo">'+(ss+1)+"&ndash;'+ee+' / "+mFil[b].length+' gosteriliyor</span><div class="pagbtns">'+h+'</div>';
 }
 function getSonAktivite(b,adi){
   var data=BOLGE_DATA[b];
@@ -832,7 +832,7 @@ function importExcel(b,inp){
         }
         if(!found){list.push({adi:mAdi,il:String(r[1]||"").trim(),ilce:String(r[2]||"").trim(),tel:String(r[3]||"").trim()});added++;}
       }
-      STATE[b].musRef.set(list,function(err){if(!err){alert(updated+" guncellendi, "+added+" eklendi.");inp.value="";}});
+      STATE[b].musRef.set(list,function(err){if(!err){alert(updated+" guncellendi, '+added+' eklendi.");inp.value="";}});
     }catch(err){alert("Hata: "+err.message);}
   };
   reader.readAsBinaryString(file);
@@ -849,7 +849,7 @@ function exportExcel(b){
   }
   var csv=rows.map(function(r){return r.map(function(v){var s=String(v);if(s.indexOf(",")>=0||s.indexOf(";")>=0||s.indexOf('"')>=0)s='"'+s.replace(/"/g,'""')+'"';return s;}).join(";");}).join("\r\n");
   var blob=new Blob(["\uFEFF"+csv],{type:"text/csv;charset=utf-8;"});
-  var a=document.createElement("a");a.href=URL.createObjectURL(blob);a.download="adel-"+b+"-"+st.donemCfg.donem+".csv";a.click();
+  var a=document.createElement("a");a.href=URL.createObjectURL(blob);a.download="adel-'+b+'-"+st.donemCfg.donem+".csv";a.click();
 }
 
 // ── AYARLAR ──
@@ -978,7 +978,7 @@ function handleWA(b,gi,btn){
       rc.innerHTML="";
       var net=m.tutar*(1-m.iskonto/100);
       var msg="Sayin "+m.musteri+",\n\n"+cfg.donem+" "+cfg.yil+" aktivitesi odeme bildiriminiz ekte yer almaktadir.\n\nIskonto sonrasi: "+tl(net)+" TL\nNakit: "+cfg.nakitTarih+"\nKart: "+cfg.kartTarih+"\n\nhttps://adel.tahsildar.com.tr\n0549 625 24 34";
-      setTimeout(function(){window.open("https://wa.me/"+phone+"?text="+encodeURIComponent(msg),"_blank");btn.disabled=false;btn.innerHTML="&#128242; WA";},1200);
+      setTimeout(function(){window.open("https://wa.me/'+phone+'?text="+encodeURIComponent(msg),"_blank");btn.disabled=false;btn.innerHTML="&#128242; WA";},1200);
     });
   },250);
 }
