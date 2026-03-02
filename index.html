@@ -449,7 +449,7 @@ function loadBolge(b){
 function buildAdminNav(){
   var nav=document.getElementById("mainNav"),html="";
   ALL_BOLGELER.forEach(function(b){
-    html+='<div class="nav-tab bolge-tab" id="btab_'+b+'" onclick="showBolge(\''+b+'\')">'+BOLGE_ADLARI[b]+'</div>';
+    html+='<div class="nav-tab bolge-tab" id="btab_'+b+'" onclick="showBolge('+b+')">'+BOLGE_ADLARI[b]+'</div>';
   });
   html+='<div class="nav-sep"></div>';
   html+='<div class="nav-tab" id="tab_ayarlar" onclick="showPage(\'ayarlar\')">&#9881; Ayarlar</div>';
@@ -545,7 +545,7 @@ function buildMusterilerPage(b){
     '<div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:12px;align-items:center;">'+
       '<div class="srch" style="flex:1;min-width:200px;"><span class="ico">&#128269;</span><input type="text" id="mSinp_'+b+'" placeholder="Musteri adiyla arayin..."></div>'+
       '<label style="background:var(--green);color:#fff;border:none;border-radius:8px;padding:7px 13px;font-family:Sora,sans-serif;font-size:.7rem;font-weight:700;cursor:pointer;">&#128196; Excel Yukle'+
-        '<input type="file" id="xlsxInp_'+b+'" accept=".xlsx,.xls,.csv" style="display:none" onchange="importExcel('b',this)"></label>'+
+        '<input type="file" id="xlsxInp_'+b+'" accept=".xlsx,.xls,.csv" style="display:none" onchange="importExcel('+b+',this)"></label>'+
       '<button onclick="openMusteri('+b+',-1)" style="background:var(--dark);color:#fff;border:none;border-radius:8px;padding:7px 13px;font-family:Sora,sans-serif;font-size:.7rem;font-weight:700;cursor:pointer;">+ Yeni Musteri</button>'+
     '</div>'+
     '<div class="tblwrap"><table>'+
@@ -744,12 +744,12 @@ function drawPag(b){
   var pag=document.getElementById("pag_"+b);if(!pag)return;
   if(total<=1&&fil.length<=20){pag.innerHTML="";return;}
   var s=(pg-1)*20,e=Math.min(s+20,fil.length);
-  var h="<button class=\"pb\" "+(pg<=1?"disabled":"")+' onclick="STATE[b].pg='+(pg-1)+';drawListe(b)">&#8592;</button>';
+  var h="<button class=\"pb\" "+(pg<=1?"disabled":"")+' onclick="STATE['+b+'].pg='+(pg-1)+';drawListe('+b+')">&#8592;</button>';
   for(var i=1;i<=total;i++){
-    if(i===1||i===total||Math.abs(i-pg)<=2)h+='<button class="pb'+(i===pg?" act":"")+'" onclick="STATE[b].pg='+i+';drawListe(b)">'+i+'</button>';
+    if(i===1||i===total||Math.abs(i-pg)<=2)h+='<button class="pb'+(i===pg?" act":"")+'" onclick="STATE['+b+'].pg='+i+';drawListe('+b+')">'+i+'</button>';
     else if(Math.abs(i-pg)===3)h+='<span style="padding:0 3px;color:var(--muted)">...</span>';
   }
-  h+="<button class=\"pb\" "+(pg>=total?"disabled":"")+' onclick="STATE[b].pg='+(pg+1)+';drawListe(b)">&#8594;</button>';
+  h+="<button class=\"pb\" "+(pg>=total?"disabled":"")+' onclick="STATE['+b+'].pg='+(pg+1)+';drawListe('+b+')">&#8594;</button>';
   pag.innerHTML='<span class="paginfo">'+(s+1)+"&ndash;"+e+" / "+fil.length+' gosteriliyor</span><div class="pagbtns">'+h+'</div>';
 }
 
@@ -773,9 +773,9 @@ function drawMusteriler(b){
   if(!pag)return;
   if(total<=1){pag.innerHTML="";return;}
   var ss=(pg-1)*20,ee=Math.min(ss+20,mFil[b].length);
-  var h="<button class=\"pb\" "+(pg<=1?"disabled":"")+' onclick="mPg[b]='+(pg-1)+';drawMusteriler(b)">&#8592;</button>';
-  for(var j=1;j<=total;j++)if(j===1||j===total||Math.abs(j-pg)<=2)h+='<button class="pb'+(j===pg?" act":"")+'" onclick="mPg['b+'\']='+j+';drawMusteriler(b)">'+j+'</button>';
-  h+="<button class=\"pb\" "+(pg>=total?"disabled":"")+' onclick="mPg[b]='+(pg+1)+';drawMusteriler(b)">&#8594;</button>';
+  var h="<button class=\"pb\" "+(pg<=1?"disabled":"")+' onclick="mPg['+b+']='+(pg-1)+';drawMusteriler('+b+')">&#8592;</button>';
+  for(var j=1;j<=total;j++)if(j===1||j===total||Math.abs(j-pg)<=2)h+='<button class="pb'+(j===pg?" act":"")+'" onclick="mPg['+b+'\']='+j+';drawMusteriler('+b+')">'+j+'</button>';
+  h+="<button class=\"pb\" "+(pg>=total?"disabled":"")+' onclick="mPg['+b+']='+(pg+1)+';drawMusteriler('+b+')">&#8594;</button>';
   pag.innerHTML='<span class="paginfo">'+(ss+1)+"&ndash;"+ee+" / "+mFil[b].length+' gosteriliyor</span><div class="pagbtns">'+h+'</div>';
 }
 function getSonAktivite(b,adi){
