@@ -498,7 +498,7 @@ function buildMusterilerPage(b){
       '<button onclick="openMusteri(\'+b+\',-1)" style="background:var(--dark);color:#fff;border:none;border-radius:8px;padding:7px 13px;font-family:\'Sora\',sans-serif;font-size:.7rem;font-weight:700;cursor:pointer;">+ Yeni Musteri</button>'+
     '</div>'+
     '<div class="tblwrap"><table>'+
-      '<thead><tr><th>#</th><th>Musteri Adi</th><th>Il</th><th>Ilce</th><th>Telefon</th><th>Son Aktivite</th><th></th></tr></thead>'+
+      '<thead><tr><th>#</th><th>Musteri Adi</th><th>Il</th><th>Ilce</th><th>Bolge / Semt</th><th>Telefon</th><th>Son Aktivite</th><th></th></tr></thead>'+
       '<tbody id="mTbody_'+b+'"></tbody>'+
     '</table><div class="pag" id="mPag_'+b+'"></div></div>'+
   '</div>';
@@ -705,7 +705,7 @@ function drawPag(b){
 // ── MÜŞTERİLER ──
 function drawMusteriler(b){
   var q=normalize((document.getElementById("mSinp_"+b)||{value:""}).value||"");
-  mFil[b]=STATE[b].musteriler.filter(function(m){return !q||normalize(m.adi||"").indexOf(q)>=0||normalize(m.il||"").indexOf(q)>=0||normalize(m.ilce||"").indexOf(q)>=0;});
+  mFil[b]=STATE[b].musteriler.filter(function(m){return !q||normalize(m.adi||"").indexOf(q)>=0||normalize(m.il||"").indexOf(q)>=0||normalize(m.ilce||"").indexOf(q)>=0||normalize(m.bolge||"").indexOf(q)>=0;});
   var pill=document.getElementById("mPill_"+b);if(pill)pill.textContent=STATE[b].musteriler.length+" musteri";
   var tb=document.getElementById("mTbody_"+b);if(!tb)return;
   var s=(mPg[b]-1)*20,slice=mFil[b].slice(s,s+20),html="";
@@ -713,6 +713,7 @@ function drawMusteriler(b){
     var m=slice[i],fi=s+i,sAkt=getSonAktivite(b,m.adi);
     html+="<tr><td class=\"tdno\">"+(fi+1)+"</td><td class=\"tdm\">"+escH(m.adi||"")+"</td>";
     html+="<td class=\"tdd\">"+escH(m.il||"—")+"</td><td class=\"tdd\">"+escH(m.ilce||"—")+"</td>";
+    html+="<td class=\"tdd\">"+escH(m.bolge||"—")+"</td>";
     html+="<td><span style=\"font-family:'JetBrains Mono',monospace;font-size:.68rem;\">"+escH(m.tel||"—")+"</span></td>";
     html+="<td>"+sAkt+"</td>";
     html+="<td><button onclick=\"openMusteri('"+b+"',"+fi+")\" style=\"background:none;border:1px solid var(--border);border-radius:5px;padding:3px 8px;font-size:.63rem;font-weight:600;cursor:pointer;color:var(--muted)\">Duzenle</button></td></tr>";
@@ -748,6 +749,7 @@ function openMusteri(b,fi){
   document.getElementById("mAdi").value=m.adi||"";
   document.getElementById("mIl").value=m.il||"";
   document.getElementById("mIlce").value=m.ilce||"";
+  document.getElementById("mBolge").value=m.bolge||"";
   document.getElementById("mTel").value=m.tel||"";
   document.getElementById("mModal").style.display="flex";
 }
@@ -755,7 +757,7 @@ function closeMusteri(){document.getElementById("mModal").style.display="none";}
 function saveMusteri(){
   var b=mEditB,adi=document.getElementById("mAdi").value.trim();
   if(!adi){alert("Ad zorunlu!");return;}
-  var obj={adi:adi,il:document.getElementById("mIl").value.trim(),ilce:document.getElementById("mIlce").value.trim(),tel:document.getElementById("mTel").value.trim()};
+  var obj={adi:adi,il:document.getElementById("mIl").value.trim(),ilce:document.getElementById("mIlce").value.trim(),bolge:document.getElementById("mBolge").value.trim(),tel:document.getElementById("mTel").value.trim()};
   var list=STATE[b].musteriler.slice();
   if(mEditIdx>=0){var orig=mFil[b][mEditIdx];var idx=-1;for(var i=0;i<list.length;i++){if(normalize(list[i].adi)===normalize(orig.adi)){idx=i;break;}}if(idx>=0)list[idx]=obj;else list.push(obj);}
   else list.push(obj);
@@ -947,6 +949,7 @@ document.addEventListener("DOMContentLoaded",function(){
       '<div style="grid-column:1/-1;" class="set-item"><label>Musteri Adi *</label><input type="text" id="mAdi" placeholder="Tam unvan"></div>'+
       '<div class="set-item"><label>Il</label><input type="text" id="mIl" placeholder="Izmir"></div>'+
       '<div class="set-item"><label>Ilce</label><input type="text" id="mIlce" placeholder="Bornova"></div>'+
+      '<div style="grid-column:1/-1;" class="set-item"><label>Bolge / Semt</label><input type="text" id="mBolge" placeholder="Ege Bolgesi, Karsiyaka, Konak..."></div>'+
       '<div style="grid-column:1/-1;" class="set-item"><label>Telefon (WhatsApp)</label><input type="text" id="mTel" placeholder="905XXXXXXXXX"></div>'+
     '</div>'+
     '<div style="display:flex;gap:8px;margin-top:18px;justify-content:flex-end;">'+
