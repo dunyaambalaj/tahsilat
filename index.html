@@ -1300,8 +1300,7 @@ function exportCariHesaplar(){
       rows.push([nr++,mus.cariKod||m.cariKod||"",m.musteri,mus.il||"",mus.ilce||"",mus.tel||"",mus.bolge||"",m.tutar.toFixed(2).replace(".",","),ci,net.toFixed(2).replace(".",","),lbl[sv]||sv,so.paidDonem||"",so.partial||"",so.vadeliTarih||"",st.bildirimMap[i]?"Evet":"Hayir"]);
     }
   });
-  var csv=rows.map(function(r){return r.map(function(v){var s=String(v==null?"":v);if(s.indexOf(",")>=0||s.indexOf(";")>=0||s.indexOf('"')>=0)s='"'+s.replace(/"/g,'""')+'"';return s;}).join(";");}).join("
-");
+  var csv=rows.map(function(r){return r.map(function(v){var s=String(v==null?"":v);if(s.indexOf(",")>=0||s.indexOf(";")>=0||s.indexOf('"')>=0)s='"'+s.replace(/"/g,'""')+'"';return s;}).join(";");}).join("\r\n");
   var blob=new Blob(["﻿"+csv],{type:"text/csv;charset=utf-8;"});
   var a=document.createElement("a");a.href=URL.createObjectURL(blob);a.download="adel-cari-hesaplar-tum.csv";a.click();
 }
