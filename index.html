@@ -140,16 +140,13 @@ td{padding:7px 10px;font-size:.76rem;vertical-align:middle;}
 .pb.act{background:var(--dark);color:#fff;border-color:var(--dark);}
 .pb:disabled{opacity:.3;pointer-events:none;}
 
-/* ── BÖLGE PILL SEÇİCİ ── */
-.bolge-pills{display:flex;gap:3px;flex-wrap:nowrap;}
-.bp{border:1px solid var(--border);background:#faf9f6;border-radius:5px;padding:3px 7px;font-family:'JetBrains Mono',monospace;font-size:.62rem;font-weight:700;cursor:pointer;color:var(--muted);transition:all .15s;white-space:nowrap;}
-.bp:hover{border-color:var(--dark);color:var(--dark);}
-.bp.bp-35.act{background:#1a6b8a;border-color:#1a6b8a;color:#fff;}
-.bp.bp-44.act{background:#c96f20;border-color:#c96f20;color:#fff;}
-.bp.bp-25.act{background:#1e7a46;border-color:#1e7a46;color:#fff;}
-.bp.bp-27.act{background:#b83228;border-color:#b83228;color:#fff;}
-.bp.bp-none.act{background:var(--muted);border-color:var(--muted);color:#fff;}
-.bp-moving{opacity:.45;pointer-events:none;}
+/* ── BÖLGE SELECT ── */
+.bolge-select{border:1px solid var(--border);border-radius:6px;padding:4px 6px;font-family:'Sora',sans-serif;font-size:.65rem;font-weight:600;cursor:pointer;outline:none;width:100%;background:#fff;color:var(--muted);}
+.bolge-select.b35{background:#e8f4f8;color:#1a6b8a;border-color:#9ecfe0;}
+.bolge-select.b44{background:#fef4ec;color:#c96f20;border-color:#f0c878;}
+.bolge-select.b25{background:#f0faf4;color:#1e7a46;border-color:#b8dfc8;}
+.bolge-select.b27{background:#fef7f6;color:#b83228;border-color:#f0c8c4;}
+.bolge-select.moving{opacity:.4;pointer-events:none;}
 
 .settings-lock{display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:60vh;gap:16px;}
 .lock-icon{font-size:2.5rem;opacity:.3;}
@@ -738,16 +735,19 @@ function drawMusteriler(b){
   for(var i=0;i<slice.length;i++){
     var m=slice[i],fi=s+i,sAkt=getSonAktivite(b,m.adi);
     var curBolge=String(m.bolge||"").trim();
-    var pills35='<button class="bp bp-35'+(curBolge==="35"?" act":"")+'" onclick="changeBolgePill(\''+b+'\','+fi+',\'35\',this)">35</button>';
-    var pills44='<button class="bp bp-44'+(curBolge==="44"?" act":"")+'" onclick="changeBolgePill(\''+b+'\','+fi+',\'44\',this)">44</button>';
-    var pills25='<button class="bp bp-25'+(curBolge==="25"?" act":"")+'" onclick="changeBolgePill(\''+b+'\','+fi+',\'25\',this)">25</button>';
-    var pills27='<button class="bp bp-27'+(curBolge==="27"?" act":"")+'" onclick="changeBolgePill(\''+b+'\','+fi+',\'27\',this)">27</button>';
-    var pillsNone='<button class="bp bp-none'+(!curBolge?" act":"")+'" onclick="changeBolgePill(\''+b+'\','+fi+',\'\',this)">—</button>';
+    var bCls=curBolge==="35"?"b35":curBolge==="44"?"b44":curBolge==="25"?"b25":curBolge==="27"?"b27":"";
+    var bSel="<select class=\"bolge-select "+bCls+"\" data-b=\""+b+"\" data-fi=\""+fi+"\" onchange=\"changeBolgeSelect(this)\">";
+    bSel+="<option value=\"\""+(curBolge===""?" selected":"")+">— Atanmamis</option>";
+    bSel+="<option value=\"35\""+(curBolge==="35"?" selected":"")+">35 Izmir</option>";
+    bSel+="<option value=\"44\""+(curBolge==="44"?" selected":"")+">44 Malatya</option>";
+    bSel+="<option value=\"25\""+(curBolge==="25"?" selected":"")+">25 Erzurum</option>";
+    bSel+="<option value=\"27\""+(curBolge==="27"?" selected":"")+">27 Gaziantep</option>";
+    bSel+="</select>";
     html+="<tr id=\"mrow_"+b+"_"+fi+"\"><td class=\"tdno\">"+(fi+1)+"</td>";
     html+="<td><span style=\"font-family:'JetBrains Mono',monospace;font-size:.68rem;font-weight:700;color:var(--dark);\">"+escH(m.cariKod||"—")+"</span></td>";
     html+="<td class=\"tdm\">"+escH(m.adi||"")+"</td>";
     html+="<td class=\"tdd\">"+escH(m.il||"—")+"</td><td class=\"tdd\">"+escH(m.ilce||"—")+"</td>";
-    html+="<td><div class=\"bolge-pills\">"+pillsNone+pills35+pills44+pills25+pills27+"</div></td>";
+    html+="<td style=\"min-width:130px\">"+bSel+"</td>";
     html+="<td><span style=\"font-family:'JetBrains Mono',monospace;font-size:.68rem;\">"+escH(m.tel||"—")+"</span></td>";
     html+="<td>"+sAkt+"</td>";
     html+="<td><button onclick=\"openMusteri('"+b+"',"+fi+")\" style=\"background:none;border:1px solid var(--border);border-radius:5px;padding:3px 8px;font-size:.63rem;font-weight:600;cursor:pointer;color:var(--muted)\">Duzenle</button></td></tr>";
@@ -762,31 +762,33 @@ function drawMusteriler(b){
   h+="<button class=\"pb\" "+(pg>=total?"disabled":"")+' onclick="mPg[\''+b+'\'\']='+(pg+1)+';drawMusteriler(\'+b+\')">&#8594;</button>';
   pag.innerHTML='<span class="paginfo">'+(ss+1)+"&ndash;"+ee+" / "+mFil[b].length+' gosteriliyor</span><div class="pagbtns">'+h+'</div>';
 }
-function changeBolgePill(b,fi,yeniBolge,btn){
+function changeBolgeSelect(sel){
+  var b=sel.getAttribute("data-b"),fi=parseInt(sel.getAttribute("data-fi"));
+  var yeniBolge=sel.value;
   var m=mFil[b][fi];if(!m)return;
   var eskiBolge=String(m.bolge||"").trim();
-  if(eskiBolge===yeniBolge)return; // Zaten aynı bölge, işlem yok
+  if(eskiBolge===yeniBolge)return;
 
-  // Satırı pasif göster
-  var row=document.getElementById("mrow_"+b+"_"+fi);
-  if(row)row.classList.add("bp-moving");
+  sel.className="bolge-select moving";
 
   var obj={adi:m.adi,cariKod:m.cariKod||"",il:m.il||"",ilce:m.ilce||"",bolge:yeniBolge,tel:m.tel||""};
   var hedefBolge=yeniBolge&&BOLGELER[yeniBolge]?BOLGELER[yeniBolge].kod:b;
 
-  // Kaynak listeden bul ve sil/güncelle
   var srcList=STATE[b].musteriler.slice();
   var srcIdx=-1;
   for(var i=0;i<srcList.length;i++){
     if(normalize(srcList[i].adi)===normalize(m.adi)){srcIdx=i;break;}
   }
 
+  function onDone(){
+    var bCls=yeniBolge==="35"?"b35":yeniBolge==="44"?"b44":yeniBolge==="25"?"b25":yeniBolge==="27"?"b27":"";
+    sel.className="bolge-select "+bCls;
+  }
+
   if(hedefBolge!==b){
-    // Farklı bölgeye taşı: kaynaktan sil
     if(srcIdx>=0)srcList.splice(srcIdx,1);
     STATE[b].musRef.set(srcList,function(e1){
-      if(e1){if(row)row.classList.remove("bp-moving");alert("Hata!");return;}
-      // Hedefe ekle
+      if(e1){sel.className="bolge-select";sel.value=eskiBolge;alert("Hata!");return;}
       var dstList=STATE[hedefBolge].musteriler.slice();
       var dstIdx=-1;
       for(var j=0;j<dstList.length;j++){
@@ -794,16 +796,13 @@ function changeBolgePill(b,fi,yeniBolge,btn){
       }
       if(dstIdx>=0)dstList[dstIdx]=obj;else dstList.push(obj);
       STATE[hedefBolge].musRef.set(dstList,function(e2){
-        if(row)row.classList.remove("bp-moving");
-        // drawMusteriler zaten Firebase listener'dan tetiklenecek
+        if(e2)alert("Hedef kayit hatasi!");
+        onDone();
       });
     });
   } else {
-    // Aynı bölge, sadece bolge alanını güncelle (örn: "" → "35" ama hedef yine izmir)
-    if(srcIdx>=0)srcList[srcIdx]=obj;
-    STATE[b].musRef.set(srcList,function(){
-      if(row)row.classList.remove("bp-moving");
-    });
+    if(srcIdx>=0)srcList[srcIdx]=obj;else srcList.push(obj);
+    STATE[b].musRef.set(srcList,function(){onDone();});
   }
 }
 function getSonAktivite(b,adi){
