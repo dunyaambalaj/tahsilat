@@ -385,8 +385,17 @@ function loadBolge(b){
     STATE[b].phones={};
     var data=BOLGE_DATA[b];
     for(var i=0;i<data.length;i++){
+      var found=false;
+      // Önce cari kod ile eşleştir
       for(var j=0;j<STATE[b].musteriler.length;j++){
-        if(normalize(STATE[b].musteriler[j].adi)===normalize(data[i].musteri)&&STATE[b].musteriler[j].tel){STATE[b].phones[i]=STATE[b].musteriler[j].tel;break;}
+        var mus=STATE[b].musteriler[j];
+        if(mus.cariKod&&data[i].cariKod&&normalize(mus.cariKod)===normalize(data[i].cariKod)&&mus.tel){STATE[b].phones[i]=mus.tel;found=true;break;}
+      }
+      // Bulunamazsa isim ile eşleştir
+      if(!found){
+        for(var j=0;j<STATE[b].musteriler.length;j++){
+          if(normalize(STATE[b].musteriler[j].adi)===normalize(data[i].musteri)&&STATE[b].musteriler[j].tel){STATE[b].phones[i]=STATE[b].musteriler[j].tel;break;}
+        }
       }
     }
     drawListe(b);
@@ -498,7 +507,7 @@ function buildMusterilerPage(b){
       '<button onclick="openMusteri(\'+b+\',-1)" style="background:var(--dark);color:#fff;border:none;border-radius:8px;padding:7px 13px;font-family:\'Sora\',sans-serif;font-size:.7rem;font-weight:700;cursor:pointer;">+ Yeni Musteri</button>'+
     '</div>'+
     '<div class="tblwrap"><table>'+
-      '<thead><tr><th>#</th><th>Musteri Adi</th><th>Il</th><th>Ilce</th><th>Bolge / Semt</th><th>Telefon</th><th>Son Aktivite</th><th></th></tr></thead>'+
+      '<thead><tr><th>#</th><th>Cari Kod</th><th>Musteri Adi</th><th>Il</th><th>Ilce</th><th>Bolge (Plaka)</th><th>Telefon</th><th>Son Aktivite</th><th></th></tr></thead>'+
       '<tbody id="mTbody_'+b+'"></tbody>'+
     '</table><div class="pag" id="mPag_'+b+'"></div></div>'+
   '</div>';
@@ -705,13 +714,20 @@ function drawPag(b){
 // ── MÜŞTERİLER ──
 function drawMusteriler(b){
   var q=normalize((document.getElementById("mSinp_"+b)||{value:""}).value||"");
-  mFil[b]=STATE[b].musteriler.filter(function(m){return !q||normalize(m.adi||"").indexOf(q)>=0||normalize(m.il||"").indexOf(q)>=0||normalize(m.ilce||"").indexOf(q)>=0||normalize(m.bolge||"").indexOf(q)>=0;});
+  // Kullanici filtresi: admin degil ve bolge kullanicisiysa sadece kendi plaka kodunu gorur
+  var userPlakaFilter=(!currentUser||currentUser.isAdmin)?null:currentUser.kod; // "35","44" gibi
+  mFil[b]=STATE[b].musteriler.filter(function(m){
+    if(userPlakaFilter&&String(m.bolge||"").trim()!==userPlakaFilter)return false;
+    return !q||normalize(m.adi||"").indexOf(q)>=0||normalize(m.cariKod||"").indexOf(q)>=0||normalize(m.il||"").indexOf(q)>=0||normalize(m.ilce||"").indexOf(q)>=0||normalize(m.bolge||"").indexOf(q)>=0;
+  });
   var pill=document.getElementById("mPill_"+b);if(pill)pill.textContent=STATE[b].musteriler.length+" musteri";
   var tb=document.getElementById("mTbody_"+b);if(!tb)return;
   var s=(mPg[b]-1)*20,slice=mFil[b].slice(s,s+20),html="";
   for(var i=0;i<slice.length;i++){
     var m=slice[i],fi=s+i,sAkt=getSonAktivite(b,m.adi);
-    html+="<tr><td class=\"tdno\">"+(fi+1)+"</td><td class=\"tdm\">"+escH(m.adi||"")+"</td>";
+    html+="<tr><td class=\"tdno\">"+(fi+1)+"</td>";
+    html+="<td><span style=\"font-family:'JetBrains Mono',monospace;font-size:.68rem;font-weight:700;color:var(--dark);\">"+escH(m.cariKod||"—")+"</span></td>";
+    html+="<td class=\"tdm\">"+escH(m.adi||"")+"</td>";
     html+="<td class=\"tdd\">"+escH(m.il||"—")+"</td><td class=\"tdd\">"+escH(m.ilce||"—")+"</td>";
     html+="<td class=\"tdd\">"+escH(m.bolge||"—")+"</td>";
     html+="<td><span style=\"font-family:'JetBrains Mono',monospace;font-size:.68rem;\">"+escH(m.tel||"—")+"</span></td>";
@@ -747,6 +763,7 @@ function openMusteri(b,fi){
   var m=fi>=0?(mFil[b][fi]||{}):{};
   document.getElementById("mModalTitle").textContent=fi>=0?"Musteri Duzenle":"Yeni Musteri";
   document.getElementById("mAdi").value=m.adi||"";
+  document.getElementById("mCariKod").value=m.cariKod||"";
   document.getElementById("mIl").value=m.il||"";
   document.getElementById("mIlce").value=m.ilce||"";
   document.getElementById("mBolge").value=m.bolge||"";
@@ -757,7 +774,7 @@ function closeMusteri(){document.getElementById("mModal").style.display="none";}
 function saveMusteri(){
   var b=mEditB,adi=document.getElementById("mAdi").value.trim();
   if(!adi){alert("Ad zorunlu!");return;}
-  var obj={adi:adi,il:document.getElementById("mIl").value.trim(),ilce:document.getElementById("mIlce").value.trim(),bolge:document.getElementById("mBolge").value.trim(),tel:document.getElementById("mTel").value.trim()};
+  var obj={adi:adi,cariKod:document.getElementById("mCariKod").value.trim(),il:document.getElementById("mIl").value.trim(),ilce:document.getElementById("mIlce").value.trim(),bolge:document.getElementById("mBolge").value.trim(),tel:document.getElementById("mTel").value.trim()};
   var list=STATE[b].musteriler.slice();
   if(mEditIdx>=0){var orig=mFil[b][mEditIdx];var idx=-1;for(var i=0;i<list.length;i++){if(normalize(list[i].adi)===normalize(orig.adi)){idx=i;break;}}if(idx>=0)list[idx]=obj;else list.push(obj);}
   else list.push(obj);
@@ -769,21 +786,96 @@ function importExcel(b,inp){
   reader.onload=function(e){
     try{
       var wb=XLSX.read(e.target.result,{type:"binary"});
-      var rows=XLSX.utils.sheet_to_json(wb.Sheets[wb.SheetNames[0]],{header:1,defval:""});
-      if(rows.length<2){alert("Excel bos!");return;}
-      var added=0,updated=0,list=STATE[b].musteriler.slice();
-      for(var i=1;i<rows.length;i++){
-        var r=rows[i],mAdi=String(r[0]||"").trim();if(!mAdi)continue;
-        var tutar=parseFloat(String(r[4]||"0").replace(",",".")),isk=parseFloat(String(r[5]||"0").replace(",","."));
-        var data=BOLGE_DATA[b];
-        for(var di=0;di<data.length;di++){if(normalize(data[di].musteri)===normalize(mAdi)){if(!isNaN(tutar)&&tutar>0)data[di].tutar=tutar;if(!isNaN(isk)&&isk>=0)data[di].iskonto=isk;break;}}
-        var found=false;
-        for(var mi=0;mi<list.length;mi++){
-          if(normalize(list[mi].adi)===normalize(mAdi)){list[mi]={adi:mAdi,il:String(r[1]||"").trim(),ilce:String(r[2]||"").trim(),tel:String(r[3]||"").trim()};updated++;found=true;break;}
+      var rawRows=XLSX.utils.sheet_to_json(wb.Sheets[wb.SheetNames[0]],{header:1,defval:""});
+      if(rawRows.length<2){alert("Excel bos!");return;}
+
+      // Başlık satırından kolon indekslerini dinamik bul
+      var hdr=rawRows[0].map(function(h){return normalize(String(h||""));});
+      function col(names){for(var n=0;n<names.length;n++){var idx=hdr.indexOf(normalize(names[n]));if(idx>=0)return idx;}return -1;}
+      var CI={
+        adi:    col(["musteri","musteri adi","ad","adi"]),
+        cari:   col(["cari kod","carikod","cari"]),
+        il:     col(["il"]),
+        ilce:   col(["ilce"]),
+        tel:    col(["telefon","tel"]),
+        bolge:  col(["bolge(plaka)","bolge","plaka"]),
+        brut:   col(["brut","tutar"]),
+        isk:    col(["iskonto%","iskonto","isk"]),
+        durum:  col(["durum","status"]),
+        donem:  col(["odemedonemi","odeme donemi","donem"]),
+        kismi:  col(["kismi","kismitutar","kismi tutar"]),
+        vade:   col(["vade","vadeli","vadetarih"]),
+        bild:   col(["bildirim"])
+      };
+      var durumMap={"odedi":"paid","paid":"paid","kismi":"partial","partial":"partial","iptal":"iptal","vadeli":"vadeli","bekliyor":"bekliyor"};
+
+      var addedM=0,updatedM=0,updatedS=0;
+      var list=STATE[b].musteriler.slice();
+      var newStatusMap=JSON.parse(JSON.stringify(STATE[b].statusMap||{}));
+      var newBildirimMap=JSON.parse(JSON.stringify(STATE[b].bildirimMap||{}));
+      var data=BOLGE_DATA[b];
+
+      for(var i=1;i<rawRows.length;i++){
+        var r=rawRows[i];
+        var mAdi=CI.adi>=0?String(r[CI.adi]||"").trim():"";
+        var cKod=CI.cari>=0?String(r[CI.cari]||"").trim():"";
+        if(!mAdi&&!cKod)continue;
+
+        // ── Müşteri kaydını bul: önce cari kod, sonra isim ──
+        var musIdx=-1;
+        if(cKod){for(var mi=0;mi<list.length;mi++){if(list[mi].cariKod&&normalize(list[mi].cariKod)===normalize(cKod)){musIdx=mi;break;}}}
+        if(musIdx<0&&mAdi){for(var mi=0;mi<list.length;mi++){if(normalize(list[mi].adi||"")===normalize(mAdi)){musIdx=mi;break;}}}
+
+        var musObj={
+          adi:    mAdi||(musIdx>=0?list[musIdx].adi:""),
+          cariKod:cKod||(musIdx>=0?list[musIdx].cariKod||"":""),
+          il:     CI.il>=0?String(r[CI.il]||"").trim():(musIdx>=0?list[musIdx].il||"":""),
+          ilce:   CI.ilce>=0?String(r[CI.ilce]||"").trim():(musIdx>=0?list[musIdx].ilce||"":""),
+          tel:    CI.tel>=0?String(r[CI.tel]||"").trim():(musIdx>=0?list[musIdx].tel||"":""),
+          bolge:  CI.bolge>=0?String(r[CI.bolge]||"").trim():(musIdx>=0?list[musIdx].bolge||"":"")
+        };
+        if(!musObj.adi)continue;
+
+        if(musIdx>=0){list[musIdx]=musObj;updatedM++;}
+        else{list.push(musObj);addedM++;}
+
+        // ── BOLGE_DATA satırını bul: cari kod ile önce, sonra isim ──
+        var dataIdx=-1;
+        if(cKod){for(var di=0;di<data.length;di++){if(data[di].cariKod&&normalize(data[di].cariKod)===normalize(cKod)){dataIdx=di;break;}}}
+        if(dataIdx<0){for(var di=0;di<data.length;di++){if(normalize(data[di].musteri)===normalize(musObj.adi)){dataIdx=di;break;}}}
+
+        if(dataIdx>=0){
+          // Tutar ve iskonto güncelle
+          if(CI.brut>=0){var tv=parseFloat(String(r[CI.brut]||"").replace(",","."));if(!isNaN(tv)&&tv>0)data[dataIdx].tutar=tv;}
+          if(CI.isk>=0){var iv=parseFloat(String(r[CI.isk]||"").replace(",","."));if(!isNaN(iv)&&iv>=0)data[dataIdx].iskonto=iv;}
+
+          // Durum ve ilgili alanları güncelle
+          var so=newStatusMap[dataIdx]||{};
+          if(CI.durum>=0){
+            var dv=normalize(String(r[CI.durum]||"").trim());
+            var mapped=durumMap[dv];
+            if(mapped){so.status=mapped;updatedS++;}
+          }
+          if(CI.donem>=0){var dv2=String(r[CI.donem]||"").trim();if(dv2)so.paidDonem=dv2;}
+          if(CI.kismi>=0){var kv=String(r[CI.kismi]||"").trim();if(kv)so.partial=kv;}
+          if(CI.vade>=0){var vv=String(r[CI.vade]||"").trim();if(vv)so.vadeliTarih=vv;}
+          if(CI.isk>=0&&so.status){var iv2=parseFloat(String(r[CI.isk]||"").replace(",","."));if(!isNaN(iv2)&&iv2>=0)so.iskonto=iv2;}
+          newStatusMap[dataIdx]=so;
+
+          // Bildirim
+          if(CI.bild>=0){var bv=normalize(String(r[CI.bild]||"").trim());newBildirimMap[dataIdx]=(bv==="evet"||bv==="1"||bv==="true");}
         }
-        if(!found){list.push({adi:mAdi,il:String(r[1]||"").trim(),ilce:String(r[2]||"").trim(),tel:String(r[3]||"").trim()});added++;}
       }
-      STATE[b].musRef.set(list,function(err){if(!err){alert(updated+" guncellendi, "+added+" eklendi.");inp.value="";}});
+
+      // Tüm değişiklikleri kaydet
+      STATE[b].musRef.set(list,function(err){
+        if(!err){
+          db.ref("adel_status_"+b).set(newStatusMap);
+          db.ref("adel_bildirim_"+b).set(newBildirimMap);
+          alert("Musteri: "+updatedM+" guncellendi, "+addedM+" eklendi.\nDurum/Bildirim: "+updatedS+" satir islendi.");
+          inp.value="";
+        } else alert("Kayit hatasi!");
+      });
     }catch(err){alert("Hata: "+err.message);}
   };
   reader.readAsBinaryString(file);
@@ -791,12 +883,14 @@ function importExcel(b,inp){
 function exportExcel(b){
   var data=BOLGE_DATA[b],st=STATE[b];
   var lbl={bekliyor:"Bekliyor",paid:"Odedi",partial:"Kismi",iptal:"Iptal",vadeli:"Vadeli"};
-  var rows=[["#","Musteri","Il","Ilce","Telefon","Brut","Iskonto%","Net","Durum","OdemeDonemi","KismiTutar","Vade","Bildirim"]];
+  var rows=[["#","CariKod","Musteri","Il","Ilce","Telefon","Bolge(Plaka)","Brut","Iskonto%","Net","Durum","OdemeDonemi","KismiTutar","Vade","Bildirim"]];
   for(var i=0;i<data.length;i++){
     var m=data[i],so=st.statusMap[i]||{},sv=so.status||"bekliyor";
     var ci=(so.iskonto!=null)?so.iskonto:m.iskonto,net=m.tutar*(1-ci/100);
-    var mus=null;for(var j=0;j<st.musteriler.length;j++){if(normalize(st.musteriler[j].adi)===normalize(m.musteri)){mus=st.musteriler[j];break;}}mus=mus||{};
-    rows.push([i+1,m.musteri,mus.il||"",mus.ilce||"",mus.tel||"",m.tutar.toFixed(2).replace(".",","),ci,net.toFixed(2).replace(".",","),lbl[sv]||sv,so.paidDonem||"",so.partial||"",so.vadeliTarih||"",st.bildirimMap[i]?"Evet":"Hayir"]);
+    var mus=null;
+    for(var j=0;j<st.musteriler.length;j++){if(normalize(st.musteriler[j].adi)===normalize(m.musteri)){mus=st.musteriler[j];break;}}
+    mus=mus||{};
+    rows.push([i+1,mus.cariKod||"",m.musteri,mus.il||"",mus.ilce||"",mus.tel||"",mus.bolge||"",m.tutar.toFixed(2).replace(".",","),ci,net.toFixed(2).replace(".",","),lbl[sv]||sv,so.paidDonem||"",so.partial||"",so.vadeliTarih||"",st.bildirimMap[i]?"Evet":"Hayir"]);
   }
   var csv=rows.map(function(r){return r.map(function(v){var s=String(v);if(s.indexOf(",")>=0||s.indexOf(";")>=0||s.indexOf('"')>=0)s='"'+s.replace(/"/g,'""')+'"';return s;}).join(";");}).join("\r\n");
   var blob=new Blob(["\uFEFF"+csv],{type:"text/csv;charset=utf-8;"});
@@ -947,9 +1041,10 @@ document.addEventListener("DOMContentLoaded",function(){
     '</div>'+
     '<div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">'+
       '<div style="grid-column:1/-1;" class="set-item"><label>Musteri Adi *</label><input type="text" id="mAdi" placeholder="Tam unvan"></div>'+
+      '<div style="grid-column:1/-1;" class="set-item"><label>Cari Kod</label><input type="text" id="mCariKod" placeholder="C-00123, MUS-001..." style="font-family:\'JetBrains Mono\',monospace;letter-spacing:.05em;"></div>'+
       '<div class="set-item"><label>Il</label><input type="text" id="mIl" placeholder="Izmir"></div>'+
       '<div class="set-item"><label>Ilce</label><input type="text" id="mIlce" placeholder="Bornova"></div>'+
-      '<div style="grid-column:1/-1;" class="set-item"><label>Bolge / Semt</label><input type="text" id="mBolge" placeholder="Ege Bolgesi, Karsiyaka, Konak..."></div>'+
+      '<div style="grid-column:1/-1;" class="set-item"><label>Bolge (Plaka Kodu)</label><input type="text" id="mBolge" placeholder="35, 44, 25, 27..."></div>'+
       '<div style="grid-column:1/-1;" class="set-item"><label>Telefon (WhatsApp)</label><input type="text" id="mTel" placeholder="905XXXXXXXXX"></div>'+
     '</div>'+
     '<div style="display:flex;gap:8px;margin-top:18px;justify-content:flex-end;">'+
