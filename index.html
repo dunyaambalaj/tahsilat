@@ -390,6 +390,8 @@ function loadBolge(b){
     var d=s.val();
     if(!d){var def=BOLGE_DEFAULT_MUS[b];if(def&&def.length){musRef.set(def);STATE[b].musteriler=def.slice();}else STATE[b].musteriler=[];}
     else STATE[b].musteriler=Array.isArray(d)?d:Object.values(d);
+    // Cari hesaplardan atanan musterileri BOLGE_DATA'ya merge et
+    rebuildBolgeData(b);
     STATE[b].phones={};
     var data=BOLGE_DATA[b];
     for(var i=0;i<data.length;i++){
@@ -570,6 +572,8 @@ function buildCariHesaplarPage(){
         '</select>'+
         '<button onclick="chTopluAtaModal()" id="chTopluBtn" style="background:#1a6b8a;color:#fff;border:none;border-radius:8px;padding:7px 12px;font-family:\'Sora\',sans-serif;font-size:.7rem;font-weight:700;cursor:pointer;display:none;">&#10003; Toplu Ata</button>'+
         '<button onclick="openMusteriCH(\'\',\'\')" style="background:var(--dark);color:#fff;border:none;border-radius:8px;padding:7px 13px;font-family:\'Sora\',sans-serif;font-size:.7rem;font-weight:700;cursor:pointer;">+ Yeni Musteri</button>'+
+        '<button onclick="exportCariHesaplar()" style="background:#1e7a46;color:#fff;border:none;border-radius:8px;padding:7px 12px;font-family:\'Sora\',sans-serif;font-size:.7rem;font-weight:700;cursor:pointer;">&#128190; Disa Aktar</button>'+
+        '<label style="background:#c96f20;color:#fff;border:none;border-radius:8px;padding:7px 12px;font-family:\'Sora\',sans-serif;font-size:.7rem;font-weight:700;cursor:pointer;display:inline-block;">&#128229; Iceri Aktar<input type="file" id="chImportInp" accept=".xlsx,.xls,.csv" style="display:none" onchange="importCariHesaplar(this)"></label>'+
         '<button onclick="downloadSablon()" style="background:#6d4c9e;color:#fff;border:none;border-radius:8px;padding:7px 12px;font-family:\'Sora\',sans-serif;font-size:.7rem;font-weight:700;cursor:pointer;">&#128203; Sablon</button>'+
       '</div>'+
       '<div id="chBody"></div>'+
@@ -964,7 +968,8 @@ function drawListe(b){
     var trCls=stVal==="paid"?" class=\"st-paid\"":stVal==="iptal"?" class=\"st-iptal\"":stVal==="partial"?" class=\"st-partial\"":stVal==="vadeli"?" class=\"st-vadeli\"":"";
     var nCls=stVal==="paid"?" paid":stVal==="iptal"?" iptal":stVal==="partial"?" partial":stVal==="vadeli"?" vadeli":"";
     html+="<tr"+trCls+"><td class=\"tdno\">"+(fi+1)+"</td>";
-    html+="<td class=\"tdm"+nCls+"\" data-label=\"Musteri\">"+escH(m.musteri)+"</td>";
+    var dynBadge=m._dynamic&&(!m.tutar||m.tutar===0)?'<span style="background:#fef4ec;color:#c96f20;border:1px solid #f0c878;border-radius:4px;font-size:.55rem;padding:1px 5px;margin-left:4px;font-weight:700;">TUTAR GİR</span>':'';
+    html+="<td class=\"tdm"+nCls+"\" data-label=\"Musteri\">"+escH(m.musteri)+dynBadge+"</td>";
     html+="<td class=\"tdt\" data-label=\"Brut\">&#8378;"+tl(m.tutar)+"</td>";
     html+="<td data-label=\"Iskonto\"><input class=\"isk-edit-inp\" type=\"number\" min=\"0\" max=\"99\" value=\""+custIsk+"\" data-b=\""+b+"\" data-gidx=\""+gi2+"\" data-tutar=\""+m.tutar+"\" onchange=\"changeIskonto(this)\"></td>";
     html+="<td class=\"tdnet"+(stVal==="iptal"?" iptal":"")+"\" data-label=\"Net\">&#8378;"+tl(net)+"</td>";
@@ -1247,6 +1252,186 @@ function saveMusteri(){
     STATE[hedefBolge].musRef.set(dstList,function(e){if(!e)closeMusteri();else alert("Hata!");});
   }
 }
+function rebuildBolgeData(b){
+  // BOLGE_DATA[b]'yi STATE[b].musteriler ile merge et:
+  // Mevcut BOLGE_DATA satırları korunur (tutar/iskonto bilgisi orada),
+  // Cari hesaplardan atanmis (bolge alani bu bolgenin plaka kodu olan) musteriler eklenir.
+  var plakaMap={izmir:"35",malatya:"44",erzurum:"25",gaziantep:"27"};
+  var plaka=plakaMap[b]||"";
+  var data=BOLGE_DATA[b];
+  var musteriler=STATE[b].musteriler||[];
+
+  // Atanmis ve bu bölgeye ait olan musterileri bul
+  musteriler.forEach(function(mus){
+    if(!mus.adi)return;
+    var mBolge=String(mus.bolge||"").trim();
+    if(mBolge!==plaka)return; // Bu bolgeye atanmamis, atla
+
+    // BOLGE_DATA'da var mi? Cari kod ile, sonra isim ile ara
+    var found=false;
+    for(var i=0;i<data.length;i++){
+      if(mus.cariKod&&data[i].cariKod&&normalize(mus.cariKod)===normalize(data[i].cariKod)){found=true;break;}
+      if(!found&&normalize(data[i].musteri)===normalize(mus.adi)){found=true;break;}
+    }
+    if(!found){
+      // Yoksa ekle — tutar/iskonto 0 ile, kullanici sonra import ile gunceller
+      data.push({musteri:mus.adi,cariKod:mus.cariKod||"",donem:"",nakitTarih:"",kartTarih:"",tutar:0,iskonto:0,_dynamic:true});
+    }
+  });
+}
+
+// ── CARİ HESAPLAR EXPORT (tüm bölgeler) ──
+function exportCariHesaplar(){
+  var lbl={bekliyor:"Bekliyor",paid:"Odedi",partial:"Kismi",iptal:"Iptal",vadeli:"Vadeli"};
+  var rows=[["#","CariKod","Musteri","Il","Ilce","Telefon","Bolge(Plaka)","Brut","Iskonto%","Net","Durum","OdemeDonemi","KismiTutar","Vade","Bildirim"]];
+  var nr=1;
+  ALL_BOLGELER.forEach(function(b){
+    var data=BOLGE_DATA[b],st=STATE[b];
+    for(var i=0;i<data.length;i++){
+      var m=data[i],so=st.statusMap[i]||{},sv=so.status||"bekliyor";
+      var ci=(so.iskonto!=null)?so.iskonto:m.iskonto,net=m.tutar*(1-ci/100);
+      var mus=null;
+      for(var j=0;j<st.musteriler.length;j++){
+        if(mus)break;
+        if(m.cariKod&&st.musteriler[j].cariKod&&normalize(st.musteriler[j].cariKod)===normalize(m.cariKod))mus=st.musteriler[j];
+        else if(normalize(st.musteriler[j].adi)===normalize(m.musteri))mus=st.musteriler[j];
+      }
+      mus=mus||{};
+      rows.push([nr++,mus.cariKod||m.cariKod||"",m.musteri,mus.il||"",mus.ilce||"",mus.tel||"",mus.bolge||"",m.tutar.toFixed(2).replace(".",","),ci,net.toFixed(2).replace(".",","),lbl[sv]||sv,so.paidDonem||"",so.partial||"",so.vadeliTarih||"",st.bildirimMap[i]?"Evet":"Hayir"]);
+    }
+  });
+  var csv=rows.map(function(r){return r.map(function(v){var s=String(v==null?"":v);if(s.indexOf(",")>=0||s.indexOf(";")>=0||s.indexOf('"')>=0)s='"'+s.replace(/"/g,'""')+'"';return s;}).join(";");}).join("
+");
+  var blob=new Blob(["﻿"+csv],{type:"text/csv;charset=utf-8;"});
+  var a=document.createElement("a");a.href=URL.createObjectURL(blob);a.download="adel-cari-hesaplar-tum.csv";a.click();
+}
+
+// ── CARİ HESAPLAR IMPORT ──
+function importCariHesaplar(inp){
+  var file=inp.files[0];if(!file)return;
+  var reader=new FileReader();
+  reader.onload=function(e){
+    try{
+      var wb=XLSX.read(e.target.result,{type:"binary"});
+      var rawRows=XLSX.utils.sheet_to_json(wb.Sheets[wb.SheetNames[0]],{header:1,defval:""});
+      if(rawRows.length<2){alert("Dosya bos!");return;}
+
+      var hdr=rawRows[0].map(function(h){return normalize(String(h||""));});
+      function col(names){for(var n=0;n<names.length;n++){var idx=hdr.indexOf(normalize(names[n]));if(idx>=0)return idx;}return -1;}
+      var CI={
+        adi:   col(["musteri","musteri adi","ad","adi"]),
+        cari:  col(["cari kod","carikod","cari"]),
+        il:    col(["il"]),
+        ilce:  col(["ilce"]),
+        tel:   col(["telefon","tel"]),
+        bolge: col(["bolge(plaka)","bolge","plaka"]),
+        brut:  col(["brut","tutar"]),
+        isk:   col(["iskonto%","iskonto","isk"]),
+        durum: col(["durum","status"]),
+        donem: col(["odemedonemi","odeme donemi","donem"]),
+        kismi: col(["kismi","kismitutar","kismi tutar"]),
+        vade:  col(["vade","vadeli","vadetarih"]),
+        bild:  col(["bildirim"])
+      };
+      var durumMap={"odedi":"paid","paid":"paid","kismi":"partial","partial":"partial","iptal":"iptal","vadeli":"vadeli","bekliyor":"bekliyor"};
+      var plakaMap={"35":"izmir","44":"malatya","25":"erzurum","27":"gaziantep"};
+
+      // Bölge bazında yeni liste ve statusMap hazırla
+      var newMus={},newStatus={},newBild={};
+      ALL_BOLGELER.forEach(function(b){newMus[b]=STATE[b].musteriler.slice();newStatus[b]=JSON.parse(JSON.stringify(STATE[b].statusMap||{}));newBild[b]=JSON.parse(JSON.stringify(STATE[b].bildirimMap||{}));});
+
+      var addedM=0,updatedM=0,updatedS=0;
+
+      for(var i=1;i<rawRows.length;i++){
+        var r=rawRows[i];
+        var mAdi=CI.adi>=0?String(r[CI.adi]||"").trim():"";
+        var cKod=CI.cari>=0?String(r[CI.cari]||"").trim():"";
+        var mBolgePlaka=CI.bolge>=0?String(r[CI.bolge]||"").trim():"";
+        if(!mAdi&&!cKod)continue;
+
+        // Hangi bölge? Satırdaki plaka kodu veya mevcut kaydın bölgesi
+        var targetBolge=plakaMap[mBolgePlaka]||null;
+
+        // Tüm bölgelerde bu müşteriyi ara
+        var foundB=null,foundIdx=-1;
+        ALL_BOLGELER.forEach(function(b){
+          if(foundB)return;
+          var list=newMus[b];
+          for(var mi=0;mi<list.length;mi++){
+            if(cKod&&list[mi].cariKod&&normalize(list[mi].cariKod)===normalize(cKod)){foundB=b;foundIdx=mi;break;}
+            if(!foundB&&mAdi&&normalize(list[mi].adi||"")===normalize(mAdi)){foundB=b;foundIdx=mi;}
+          }
+        });
+
+        var effB=targetBolge||(foundB||ALL_BOLGELER[0]);
+        var musObj={
+          adi:    mAdi||(foundB&&foundIdx>=0?newMus[foundB][foundIdx].adi:""),
+          cariKod:cKod||(foundB&&foundIdx>=0?newMus[foundB][foundIdx].cariKod||"":""),
+          il:     CI.il>=0?String(r[CI.il]||"").trim():(foundB&&foundIdx>=0?newMus[foundB][foundIdx].il||"":""),
+          ilce:   CI.ilce>=0?String(r[CI.ilce]||"").trim():(foundB&&foundIdx>=0?newMus[foundB][foundIdx].ilce||"":""),
+          tel:    CI.tel>=0?String(r[CI.tel]||"").trim():(foundB&&foundIdx>=0?newMus[foundB][foundIdx].tel||"":""),
+          bolge:  mBolgePlaka||(foundB&&foundIdx>=0?newMus[foundB][foundIdx].bolge||"":"")
+        };
+        if(!musObj.adi)continue;
+
+        // Eğer bölge değiştiyse eski yerden sil, yeniye ekle
+        if(foundB&&foundB!==effB&&foundIdx>=0){
+          newMus[foundB].splice(foundIdx,1);
+        }
+        var destList=newMus[effB];
+        var destIdx=-1;
+        for(var mi=0;mi<destList.length;mi++){
+          if(cKod&&destList[mi].cariKod&&normalize(destList[mi].cariKod)===normalize(cKod)){destIdx=mi;break;}
+          if(destIdx<0&&mAdi&&normalize(destList[mi].adi||"")===normalize(mAdi))destIdx=mi;
+        }
+        if(destIdx>=0){destList[destIdx]=musObj;updatedM++;}
+        else{destList.push(musObj);addedM++;}
+
+        // BOLGE_DATA güncelle (tutar, iskonto, durum)
+        var bdata=BOLGE_DATA[effB];
+        var dataIdx=-1;
+        for(var di=0;di<bdata.length;di++){
+          if(cKod&&bdata[di].cariKod&&normalize(bdata[di].cariKod)===normalize(cKod)){dataIdx=di;break;}
+          if(dataIdx<0&&mAdi&&normalize(bdata[di].musteri)===normalize(musObj.adi))dataIdx=di;
+        }
+        if(dataIdx<0){
+          // Yeni satır ekle
+          bdata.push({musteri:musObj.adi,cariKod:musObj.cariKod||"",donem:"",nakitTarih:"",kartTarih:"",tutar:0,iskonto:0,_dynamic:true});
+          dataIdx=bdata.length-1;
+        }
+        if(CI.brut>=0){var tv=parseFloat(String(r[CI.brut]||"").replace(",","."));if(!isNaN(tv)&&tv>=0)bdata[dataIdx].tutar=tv;}
+        if(CI.isk>=0){var iv=parseFloat(String(r[CI.isk]||"").replace(",","."));if(!isNaN(iv)&&iv>=0)bdata[dataIdx].iskonto=iv;}
+
+        var so=newStatus[effB][dataIdx]||{};
+        if(CI.durum>=0){var dv=normalize(String(r[CI.durum]||"").trim());var mapped=durumMap[dv];if(mapped){so.status=mapped;updatedS++;}}
+        if(CI.donem>=0){var dv2=String(r[CI.donem]||"").trim();if(dv2)so.paidDonem=dv2;}
+        if(CI.kismi>=0){var kv=String(r[CI.kismi]||"").trim();if(kv)so.partial=kv;}
+        if(CI.vade>=0){var vv=String(r[CI.vade]||"").trim();if(vv)so.vadeliTarih=vv;}
+        if(CI.isk>=0&&so.status){var iv2=parseFloat(String(r[CI.isk]||"").replace(",","."));if(!isNaN(iv2)&&iv2>=0)so.iskonto=iv2;}
+        newStatus[effB][dataIdx]=so;
+        if(CI.bild>=0){var bv=normalize(String(r[CI.bild]||"").trim());newBild[effB][dataIdx]=(bv==="evet"||bv==="1"||bv==="true");}
+      }
+
+      // Firebase'e yaz
+      var remaining=ALL_BOLGELER.length,errors=0;
+      ALL_BOLGELER.forEach(function(b){
+        STATE[b].musRef.set(newMus[b],function(err){
+          if(err)errors++;
+          db.ref("adel_status_"+b).set(newStatus[b]);
+          db.ref("adel_bildirim_"+b).set(newBild[b]);
+          remaining--;
+          if(remaining===0){
+            alert("Import tamamlandi!\nMusteri: "+updatedM+" guncellendi, "+addedM+" eklendi.\nDurum: "+updatedS+" satir islendi."+(errors?" ("+errors+" hata)":""));
+            inp.value="";
+            drawCariHesaplar();
+          }
+        });
+      });
+    }catch(err){alert("Hata: "+err.message);}
+  };
+  reader.readAsBinaryString(file);
+}
+
 function downloadSablon(){
   // Açıklamalı örnek satırlar içeren şablon CSV
   var rows=[
