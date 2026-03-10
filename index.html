@@ -939,7 +939,9 @@ function setFilter(b,f){
   STATE[b].pg=1;applyFilters(b);
 }
 function applyFilters(b){
-  var data=BOLGE_DATA[b],q=normalize((document.getElementById("sinp_"+b)||{value:""}).value||""),f=STATE[b].activeFilter;
+  var baseData=BOLGE_DATA[b],extra=(_extraMus&&_extraMus[b])||[];
+  var data=baseData.concat(extra);
+  var q=normalize((document.getElementById("sinp_"+b)||{value:""}).value||""),f=STATE[b].activeFilter;
   STATE[b].fil=data.filter(function(m,i){
     var st=(STATE[b].statusMap[i]&&STATE[b].statusMap[i].status)||"bekliyor";
     var ok=f===0||(f===1&&st==="bekliyor")||(f===2&&st==="paid")||(f===3&&st==="partial")||(f===4&&st==="iptal")||(f===5&&st==="vadeli")||(f===6&&STATE[b].bildirimMap[i]);
@@ -949,8 +951,12 @@ function applyFilters(b){
 }
 
 function drawListe(b){
-  var data=BOLGE_DATA[b],st=STATE[b];
+  // BOLGE_DATA[b] + _extraMus[b] (bölgeye atanmış ama listede olmayanlar) birleşik
+  var baseData=BOLGE_DATA[b],extra=(_extraMus&&_extraMus[b])||[],st=STATE[b];
+  var data=baseData.concat(extra); // extra'nın indeksi baseData.length + i
   if(!st.fil||!st.fil.length)st.fil=data.slice();
+  // fil'i de güncelle — yeni eklenmiş extra'lar olabilir
+  if(st.fil.length!==data.length)st.fil=data.slice();
   var s=(st.pg-1)*20,slice=st.fil.slice(s,s+20);
   var tb=document.getElementById("tbody_"+b);if(!tb)return;
   var html="",paidC=0,partialC=0,iptalC=0,vadeliC=0,bildirimC=0;
@@ -1252,31 +1258,47 @@ function saveMusteri(){
     STATE[hedefBolge].musRef.set(dstList,function(e){if(!e)closeMusteri();else alert("Hata!");});
   }
 }
+// _extraMus: bölgeye atanmış ama BOLGE_DATA'da olmayan müşteriler (tutar bilgisi firebase'den)
+var _extraMus={};
+
 function rebuildBolgeData(b){
-  // BOLGE_DATA[b]'yi STATE[b].musteriler ile merge et:
-  // Mevcut BOLGE_DATA satırları korunur (tutar/iskonto bilgisi orada),
-  // Cari hesaplardan atanmis (bolge alani bu bolgenin plaka kodu olan) musteriler eklenir.
+  // BOLGE_DATA[b]'ye DOKUNMA — indeksler ve statusMap bozulur.
+  // Sadece bu bölgeye atanmış, BOLGE_DATA'da bulunmayan müşterileri _extraMus[b]'ye ekle.
+  // drawListe bu iki kaynağı birleştirir.
   var plakaMap={izmir:"35",malatya:"44",erzurum:"25",gaziantep:"27"};
   var plaka=plakaMap[b]||"";
   var data=BOLGE_DATA[b];
   var musteriler=STATE[b].musteriler||[];
+  if(!_extraMus[b])_extraMus[b]=[];
 
-  // Atanmis ve bu bölgeye ait olan musterileri bul
   musteriler.forEach(function(mus){
     if(!mus.adi)return;
     var mBolge=String(mus.bolge||"").trim();
-    if(mBolge!==plaka)return; // Bu bolgeye atanmamis, atla
+    if(mBolge!==plaka)return;
 
-    // BOLGE_DATA'da var mi? Cari kod ile, sonra isim ile ara
-    var found=false;
+    // BOLGE_DATA'da zaten var mı?
     for(var i=0;i<data.length;i++){
-      if(mus.cariKod&&data[i].cariKod&&normalize(mus.cariKod)===normalize(data[i].cariKod)){found=true;break;}
-      if(!found&&normalize(data[i].musteri)===normalize(mus.adi)){found=true;break;}
+      if(mus.cariKod&&data[i].cariKod&&normalize(mus.cariKod)===normalize(data[i].cariKod))return;
+      if(normalize(data[i].musteri)===normalize(mus.adi))return;
     }
-    if(!found){
-      // Yoksa ekle — tutar/iskonto 0 ile, kullanici sonra import ile gunceller
-      data.push({musteri:mus.adi,cariKod:mus.cariKod||"",donem:"",nakitTarih:"",kartTarih:"",tutar:0,iskonto:0,_dynamic:true});
+    // _extraMus'ta zaten var mı?
+    for(var i=0;i<_extraMus[b].length;i++){
+      if(mus.cariKod&&_extraMus[b][i].cariKod&&normalize(_extraMus[b][i].cariKod)===normalize(mus.cariKod))return;
+      if(normalize(_extraMus[b][i].musteri)===normalize(mus.adi))return;
     }
+    // Yoksa ekle — indeks data.length + mevcut extra sayısı olacak
+    _extraMus[b].push({musteri:mus.adi,cariKod:mus.cariKod||"",donem:"",nakitTarih:"",kartTarih:"",tutar:0,iskonto:0,_dynamic:true});
+  });
+
+  // Artık bu bölgeden ayrılanları _extraMus'tan temizle
+  _extraMus[b]=_extraMus[b].filter(function(ex){
+    for(var j=0;j<musteriler.length;j++){
+      var mus=musteriler[j];
+      if(String(mus.bolge||"").trim()!==plaka)continue;
+      if(ex.cariKod&&mus.cariKod&&normalize(ex.cariKod)===normalize(mus.cariKod))return true;
+      if(normalize(ex.musteri)===normalize(mus.adi||""))return true;
+    }
+    return false;
   });
 }
 
