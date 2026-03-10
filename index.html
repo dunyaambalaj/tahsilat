@@ -502,6 +502,7 @@ function buildMusterilerPage(b){
     '</div>'+
     '<div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:12px;align-items:center;">'+
       '<div class="srch" style="flex:1;min-width:200px;"><span class="ico">&#128269;</span><input type="text" id="mSinp_'+b+'" placeholder="Musteri adiyla arayin..."></div>'+
+      '<button onclick="downloadSablon()" style="background:#6d4c9e;color:#fff;border:none;border-radius:8px;padding:7px 13px;font-family:\'Sora\',sans-serif;font-size:.7rem;font-weight:700;cursor:pointer;">&#128203; Sablon Indir</button>'+
       '<label style="background:var(--green);color:#fff;border:none;border-radius:8px;padding:7px 13px;font-family:\'Sora\',sans-serif;font-size:.7rem;font-weight:700;cursor:pointer;">&#128196; Excel Yukle'+
         '<input type="file" id="xlsxInp_'+b+'" accept=".xlsx,.xls,.csv" style="display:none" onchange="importExcel(\'+b+\',this)"></label>'+
       '<button onclick="openMusteri(\'+b+\',-1)" style="background:var(--dark);color:#fff;border:none;border-radius:8px;padding:7px 13px;font-family:\'Sora\',sans-serif;font-size:.7rem;font-weight:700;cursor:pointer;">+ Yeni Musteri</button>'+
@@ -775,10 +776,63 @@ function saveMusteri(){
   var b=mEditB,adi=document.getElementById("mAdi").value.trim();
   if(!adi){alert("Ad zorunlu!");return;}
   var obj={adi:adi,cariKod:document.getElementById("mCariKod").value.trim(),il:document.getElementById("mIl").value.trim(),ilce:document.getElementById("mIlce").value.trim(),bolge:document.getElementById("mBolge").value.trim(),tel:document.getElementById("mTel").value.trim()};
-  var list=STATE[b].musteriler.slice();
-  if(mEditIdx>=0){var orig=mFil[b][mEditIdx];var idx=-1;for(var i=0;i<list.length;i++){if(normalize(list[i].adi)===normalize(orig.adi)){idx=i;break;}}if(idx>=0)list[idx]=obj;else list.push(obj);}
-  else list.push(obj);
-  STATE[b].musRef.set(list,function(e){if(!e)closeMusteri();else alert("Hata!");});
+
+  // Hedef bölge: girilen plaka koduna karşılık gelen bölge
+  var hedefBolge=b;
+  if(obj.bolge&&BOLGELER[obj.bolge]){hedefBolge=BOLGELER[obj.bolge].kod;}
+
+  if(mEditIdx>=0){
+    // Mevcut kaydı bul
+    var orig=mFil[b][mEditIdx];
+    var srcList=STATE[b].musteriler.slice();
+    var srcIdx=-1;
+    for(var i=0;i<srcList.length;i++){if(normalize(srcList[i].adi)===normalize(orig.adi)){srcIdx=i;break;}}
+
+    if(hedefBolge!==b){
+      // Bölge değişti → kaynaktan sil, hedefe ekle
+      if(srcIdx>=0)srcList.splice(srcIdx,1);
+      STATE[b].musRef.set(srcList,function(e1){
+        if(e1){alert("Kaynak silme hatasi!");return;}
+        var dstList=STATE[hedefBolge].musteriler.slice();
+        // Hedefte zaten varsa güncelle, yoksa ekle
+        var dstIdx=-1;
+        for(var j=0;j<dstList.length;j++){if(normalize(dstList[j].adi)===normalize(adi)||( obj.cariKod&&dstList[j].cariKod&&normalize(dstList[j].cariKod)===normalize(obj.cariKod))){dstIdx=j;break;}}
+        if(dstIdx>=0)dstList[dstIdx]=obj;else dstList.push(obj);
+        STATE[hedefBolge].musRef.set(dstList,function(e2){
+          if(!e2){alert("Musteri '"+adi+"' → "+BOLGE_ADLARI[hedefBolge]+" bolgesine tasinді.");closeMusteri();}
+          else alert("Hedef kayit hatasi!");
+        });
+      });
+    } else {
+      // Aynı bölge, sadece güncelle
+      if(srcIdx>=0)srcList[srcIdx]=obj;else srcList.push(obj);
+      STATE[b].musRef.set(srcList,function(e){if(!e)closeMusteri();else alert("Hata!");});
+    }
+  } else {
+    // Yeni kayıt
+    var dstList=STATE[hedefBolge].musteriler.slice();
+    dstList.push(obj);
+    STATE[hedefBolge].musRef.set(dstList,function(e){if(!e)closeMusteri();else alert("Hata!");});
+  }
+}
+function downloadSablon(){
+  // Açıklamalı örnek satırlar içeren şablon CSV
+  var rows=[
+    ["CariKod","Musteri","Il","Ilce","Telefon","Bolge(Plaka)","Brut","Iskonto%","Durum","OdemeDonemi","KismiTutar","Vade","Bildirim"],
+    ["C-00001","ORNEK MARKET A.S.","Izmir","Bornova","905551234567","35","15000,00","19","Odedi","Mart 2026","","","Evet"],
+    ["C-00002","TEST TICARET LTD.","Malatya","Merkez","905559876543","44","8500,00","12","Bekliyor","","","","Hayir"],
+    ["C-00003","DEMO BAYI","Gaziantep","Sahinbey","905553334455","27","22000,00","22","Kismi","","9500,00","","Hayir"],
+    ["","","","","","","","","","","","",""],
+    ["--- NOTLAR ---","","","","","","","","","","","",""],
+    ["CariKod","Musteri ile eslestirme icin kullanilir. Bos birakilirsa isim ile eslestirme yapilir.","","","","","","","","","","",""],
+    ["Bolge(Plaka)","35=Izmir  44=Malatya  25=Erzurum  27=Gaziantep","","","","","","","","","","",""],
+    ["Durum","Bekliyor / Odedi / Kismi / Iptal / Vadeli","","","","","","","","","","",""],
+    ["Bildirim","Evet / Hayir","","","","","","","","","","",""],
+    ["Telefon","Uluslararasi format: 905XXXXXXXXX","","","","","","","","","","",""]
+  ];
+  var csv=rows.map(function(r){return r.map(function(v){var s=String(v||"");if(s.indexOf(",")>=0||s.indexOf(";")>=0||s.indexOf('"')>=0)s='"'+s.replace(/"/g,'""')+'"';return s;}).join(";");}).join("\r\n");
+  var blob=new Blob(["\uFEFF"+csv],{type:"text/csv;charset=utf-8;"});
+  var a=document.createElement("a");a.href=URL.createObjectURL(blob);a.download="adel-musteri-sablon.csv";a.click();
 }
 function importExcel(b,inp){
   var file=inp.files[0];if(!file)return;
