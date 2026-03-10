@@ -407,6 +407,9 @@ function loadBolge(b){
       }
     }
     drawListe(b);
+    // Müşteriler sayfası açıksa onu da yenile
+    var musPage=document.getElementById("page_musteriler_"+b);
+    if(musPage&&musPage.classList.contains("active"))drawMusteriler(b);
   });
   STATE[b].musRef=musRef;
 }
@@ -772,23 +775,41 @@ function changeBolgeSelect(sel){
   sel.className="bolge-select moving";
 
   var obj={adi:m.adi,cariKod:m.cariKod||"",il:m.il||"",ilce:m.ilce||"",bolge:yeniBolge,tel:m.tel||""};
-  var hedefBolge=yeniBolge&&BOLGELER[yeniBolge]?BOLGELER[yeniBolge].kod:b;
 
-  var srcList=STATE[b].musteriler.slice();
-  var srcIdx=-1;
-  for(var i=0;i<srcList.length;i++){
-    if(normalize(srcList[i].adi)===normalize(m.adi)){srcIdx=i;break;}
+  // Müşterinin gerçekte hangi bölgenin listesinde olduğunu bul
+  var gercekSrcBolge=b;
+  for(var bi=0;bi<ALL_BOLGELER.length;bi++){
+    var bl=ALL_BOLGELER[bi];
+    for(var mi=0;mi<STATE[bl].musteriler.length;mi++){
+      var mm=STATE[bl].musteriler[mi];
+      if(normalize(mm.adi)===normalize(m.adi)||(m.cariKod&&mm.cariKod&&normalize(mm.cariKod)===normalize(m.cariKod))){
+        gercekSrcBolge=bl;break;
+      }
+    }
   }
 
+  var hedefBolge=yeniBolge&&BOLGELER[yeniBolge]?BOLGELER[yeniBolge].kod:gercekSrcBolge;
+
+  function onHata(msg){sel.className="bolge-select";sel.value=eskiBolge;alert(msg||"Hata!");}
   function onDone(){
     var bCls=yeniBolge==="35"?"b35":yeniBolge==="44"?"b44":yeniBolge==="25"?"b25":yeniBolge==="27"?"b27":"";
     sel.className="bolge-select "+bCls;
+    // mFil'i güncelle ki listener gelene kadar doğru görünsün
+    m.bolge=yeniBolge;
   }
 
-  if(hedefBolge!==b){
-    if(srcIdx>=0)srcList.splice(srcIdx,1);
-    STATE[b].musRef.set(srcList,function(e1){
-      if(e1){sel.className="bolge-select";sel.value=eskiBolge;alert("Hata!");return;}
+  // Kaynak listeden bul
+  var srcList=STATE[gercekSrcBolge].musteriler.slice();
+  var srcIdx=-1;
+  for(var i=0;i<srcList.length;i++){
+    if(normalize(srcList[i].adi)===normalize(m.adi)||(m.cariKod&&srcList[i].cariKod&&normalize(srcList[i].cariKod)===normalize(m.cariKod))){srcIdx=i;break;}
+  }
+
+  if(hedefBolge!==gercekSrcBolge){
+    // Farklı bölgeye taşı
+    if(srcIdx>=0)srcList.splice(srcIdx,1);else{onHata("Musteri kaynak listede bulunamadi!");return;}
+    STATE[gercekSrcBolge].musRef.set(srcList,function(e1){
+      if(e1){onHata("Kaynak silme hatasi!");return;}
       var dstList=STATE[hedefBolge].musteriler.slice();
       var dstIdx=-1;
       for(var j=0;j<dstList.length;j++){
@@ -796,13 +817,17 @@ function changeBolgeSelect(sel){
       }
       if(dstIdx>=0)dstList[dstIdx]=obj;else dstList.push(obj);
       STATE[hedefBolge].musRef.set(dstList,function(e2){
-        if(e2)alert("Hedef kayit hatasi!");
+        if(e2){onHata("Hedef kayit hatasi!");return;}
         onDone();
       });
     });
   } else {
+    // Aynı bölgede kal, sadece bolge alanını güncelle
     if(srcIdx>=0)srcList[srcIdx]=obj;else srcList.push(obj);
-    STATE[b].musRef.set(srcList,function(){onDone();});
+    STATE[gercekSrcBolge].musRef.set(srcList,function(e){
+      if(e){onHata();return;}
+      onDone();
+    });
   }
 }
 function getSonAktivite(b,adi){
