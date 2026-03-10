@@ -410,6 +410,9 @@ function loadBolge(b){
     // Müşteriler sayfası açıksa onu da yenile
     var musPage=document.getElementById("page_musteriler_"+b);
     if(musPage&&musPage.classList.contains("active"))drawMusteriler(b);
+    // Cari Hesaplar sayfası açıksa onu da yenile
+    var chPage=document.getElementById("page_carihesaplar");
+    if(chPage&&chPage.classList.contains("active"))drawCariHesaplar();
   });
   STATE[b].musRef=musRef;
 }
@@ -421,15 +424,21 @@ function buildAdminNav(){
     html+='<div class="nav-tab bolge-tab" id="btab_'+b+'" onclick="showBolge(\''+b+'\')">'+BOLGE_ADLARI[b]+'</div>';
   });
   html+='<div class="nav-sep"></div>';
+  html+='<div class="nav-tab" id="tab_carihesaplar" onclick="showPage(\'carihesaplar\')">&#128101; Cari Hesaplar</div>';
+  html+='<div class="nav-sep"></div>';
   html+='<div class="nav-tab" id="tab_ayarlar" onclick="showPage(\'ayarlar\')">&#9881; Ayarlar</div>';
   nav.innerHTML=html;
   ensureAyarlarPage();
+  ensureCariHesaplarPage();
 }
 function buildBolgeNav(b){
   var nav=document.getElementById("mainNav");
   var html='<div class="nav-tab active" id="tab_liste_'+b+'" onclick="showPage(\'liste_'+b+'\')">&#128203; Liste</div>';
   html+='<div class="nav-tab" id="tab_musteriler_'+b+'" onclick="showPage(\'musteriler_'+b+'\')">&#128100; Musteriler</div>';
+  html+='<div class="nav-sep"></div>';
+  html+='<div class="nav-tab" id="tab_carihesaplar" onclick="showPage(\'carihesaplar\')">&#128101; Cari Hesaplar</div>';
   nav.innerHTML=html;
+  ensureCariHesaplarPage();
 }
 function showBolge(b){
   activeBolge=b;
@@ -454,6 +463,7 @@ function showPage(pid){
   var tabs=["tab_"+pid,"tab_liste_"+pid.replace("liste_",""),"tab_musteriler_"+pid.replace("musteriler_",""),"stab_"+pid,"btab_"+pid.replace("liste_","").replace("musteriler_",""),"tab_ayarlar"];
   tabs.forEach(function(t){var el=document.getElementById(t);if(el)el.classList.add("active");});
   if(pid.indexOf("musteriler_")===0){drawMusteriler(pid.replace("musteriler_",""));}
+  if(pid==="carihesaplar"){drawCariHesaplar();}
   if(pid==="ayarlar"){
     if(settingsUnlocked&&document.getElementById("ayarBolgeSelect"))loadAyarBolge();
   }
@@ -463,6 +473,7 @@ function showPage(pid){
 function ensurePages(b){
   if(!document.getElementById("page_liste_"+b)) buildListePage(b);
   if(!document.getElementById("page_musteriler_"+b)) buildMusterilerPage(b);
+  ensureCariHesaplarPage();
 }
 function ensureAyarlarPage(){
   if(!document.getElementById("page_ayarlar")) buildAyarlarPage();
@@ -525,6 +536,342 @@ function buildMusterilerPage(b){
   '</div>';
   c.appendChild(d);
   (function(bb){setTimeout(function(){var inp=document.getElementById("mSinp_"+bb);if(inp)inp.addEventListener("input",function(){mPg[bb]=1;drawMusteriler(bb);});},200);})(b);
+}
+
+function ensureCariHesaplarPage(){
+  if(!document.getElementById("page_carihesaplar"))buildCariHesaplarPage();
+}
+function buildCariHesaplarPage(){
+  var c=document.getElementById("pageContainer");
+  var d=document.createElement("div");d.className="page";d.id="page_carihesaplar";
+  d.innerHTML=
+    '<div class="wrap">'+
+      '<div class="topbar">'+
+        '<div class="tl-left"><div class="badge">Cari Hesaplar</div><h1>Musteri Yonetimi</h1></div>'+
+        '<div class="pills">'+
+          '<span class="pill pill-dark" id="chPillToplam">0 musteri</span>'+
+          '<span class="pill" style="background:#6d4c9e;color:#fff;" id="chPillAtanmamis">0 atanmamis</span>'+
+        '</div>'+
+      '</div>'+
+      /* Araçlar */
+      '<div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:10px;align-items:center;">'+
+        '<div class="srch" style="flex:1;min-width:180px;"><span class="ico">&#128269;</span><input type="text" id="chSinp" placeholder="Ad, cari kod, il..."></div>'+
+        '<select id="chBolgeFil" style="border:1px solid var(--border);background:#fff;border-radius:8px;padding:6px 10px;font-family:\'Sora\',sans-serif;font-size:.65rem;font-weight:600;cursor:pointer;outline:none;">'+
+          '<option value="">Tum Bolgeler</option>'+
+          '<option value="__none__">— Atanmamis</option>'+
+          '<option value="35">35 Izmir</option>'+
+          '<option value="44">44 Malatya</option>'+
+          '<option value="25">25 Erzurum</option>'+
+          '<option value="27">27 Gaziantep</option>'+
+        '</select>'+
+        '<select id="chGrupMod" style="border:1px solid var(--border);background:#fff;border-radius:8px;padding:6px 10px;font-family:\'Sora\',sans-serif;font-size:.65rem;font-weight:600;cursor:pointer;outline:none;">'+
+          '<option value="flat">Duz Liste</option>'+
+          '<option value="group">Bolgeye Gore Grupla</option>'+
+        '</select>'+
+        '<button onclick="chTopluAtaModal()" id="chTopluBtn" style="background:#1a6b8a;color:#fff;border:none;border-radius:8px;padding:7px 12px;font-family:\'Sora\',sans-serif;font-size:.7rem;font-weight:700;cursor:pointer;display:none;">&#10003; Toplu Ata</button>'+
+        '<button onclick="openMusteriCH(\'\',\'\')" style="background:var(--dark);color:#fff;border:none;border-radius:8px;padding:7px 13px;font-family:\'Sora\',sans-serif;font-size:.7rem;font-weight:700;cursor:pointer;">+ Yeni Musteri</button>'+
+        '<button onclick="downloadSablon()" style="background:#6d4c9e;color:#fff;border:none;border-radius:8px;padding:7px 12px;font-family:\'Sora\',sans-serif;font-size:.7rem;font-weight:700;cursor:pointer;">&#128203; Sablon</button>'+
+      '</div>'+
+      '<div id="chBody"></div>'+
+    '</div>'+
+    /* Toplu atama mini modal */
+    '<div id="chTopluModal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.4);z-index:9990;align-items:center;justify-content:center;">'+
+      '<div style="background:#fff;border-radius:14px;padding:24px;width:320px;box-shadow:0 8px 32px rgba(0,0,0,.2);">'+
+        '<div style="font-size:.85rem;font-weight:700;margin-bottom:14px;">Secili Musterileri Tasima</div>'+
+        '<div style="font-size:.72rem;color:var(--muted);margin-bottom:10px;" id="chTopluInfo"></div>'+
+        '<select id="chTopluHedef" style="width:100%;border:1px solid var(--border);border-radius:8px;padding:8px 10px;font-family:\'Sora\',sans-serif;font-size:.8rem;font-weight:600;outline:none;margin-bottom:16px;">'+
+          '<option value="">— Bolge Sec</option>'+
+          '<option value="35">35 Izmir</option>'+
+          '<option value="44">44 Malatya</option>'+
+          '<option value="25">25 Erzurum</option>'+
+          '<option value="27">27 Gaziantep</option>'+
+        '</select>'+
+        '<div style="display:flex;gap:8px;justify-content:flex-end;">'+
+          '<button onclick="document.getElementById(\'chTopluModal\').style.display=\'none\'" style="background:var(--bg);border:1px solid var(--border);border-radius:8px;padding:7px 14px;font-family:\'Sora\',sans-serif;font-size:.75rem;font-weight:600;cursor:pointer;color:var(--muted);">Iptal</button>'+
+          '<button onclick="chTopluAtaUygula()" style="background:var(--dark);color:#fff;border:none;border-radius:8px;padding:7px 18px;font-family:\'Sora\',sans-serif;font-size:.75rem;font-weight:700;cursor:pointer;">Tasima Yap</button>'+
+        '</div>'+
+      '</div>'+
+    '</div>';
+  c.appendChild(d);
+  setTimeout(function(){
+    var inp=document.getElementById("chSinp");
+    if(inp)inp.addEventListener("input",function(){chPg=1;drawCariHesaplar();});
+    var bf=document.getElementById("chBolgeFil");
+    if(bf)bf.addEventListener("change",function(){chPg=1;drawCariHesaplar();});
+    var gm=document.getElementById("chGrupMod");
+    if(gm)gm.addEventListener("change",function(){chPg=1;chSecili={};drawCariHesaplar();});
+  },200);
+}
+
+var chPg=1;
+var chSecili={};  // {srcBolge+"__"+adi: true}
+var BOLGE_RENKLER={"35":"#1a6b8a","44":"#c96f20","25":"#1e7a46","27":"#b83228"};
+var BOLGE_BG={"35":"#e8f4f8","44":"#fef4ec","25":"#f0faf4","27":"#fef7f6"};
+
+function chKey(srcB,adi){return srcB+"__"+adi;}
+
+function chGetFiltered(){
+  var q=normalize((document.getElementById("chSinp")||{value:""}).value||"");
+  var bfil=(document.getElementById("chBolgeFil")||{value:""}).value||"";
+  var userPlaka=(!currentUser||currentUser.isAdmin)?null:currentUser.kod;
+  var result=[];
+  ALL_BOLGELER.forEach(function(b){
+    STATE[b].musteriler.forEach(function(m){
+      var mBolge=String(m.bolge||"").trim();
+      if(userPlaka&&mBolge!==userPlaka)return;
+      if(bfil==="__none__"&&mBolge!=="")return;
+      if(bfil&&bfil!=="__none__"&&mBolge!==bfil)return;
+      if(q&&normalize(m.adi||"").indexOf(q)<0&&normalize(m.cariKod||"").indexOf(q)<0&&normalize(m.il||"").indexOf(q)<0&&normalize(m.ilce||"").indexOf(q)<0)return;
+      result.push({m:m,srcBolge:b});
+    });
+  });
+  return result;
+}
+
+function chBolgeRow(item,globalIdx){
+  var m=item.m,srcB=item.srcBolge;
+  var mBolge=String(m.bolge||"").trim();
+  var bCls=mBolge==="35"?"b35":mBolge==="44"?"b44":mBolge==="25"?"b25":mBolge==="27"?"b27":"";
+  var key=chKey(srcB,m.adi);
+  var chk=chSecili[key]?"checked":"";
+  var bSel="<select class=\"bolge-select "+bCls+"\" data-srcb=\""+srcB+"\" data-adi=\""+escH(m.adi)+"\" onchange=\"chChangeBolge(this)\">";
+  bSel+="<option value=\"\""+(mBolge===""?" selected":"")+">— Atanmamis</option>";
+  [["35","35 Izmir"],["44","44 Malatya"],["25","25 Erzurum"],["27","27 Gaziantep"]].forEach(function(o){
+    bSel+="<option value=\""+o[0]+"\""+(mBolge===o[0]?" selected":"")+">"+o[1]+"</option>";
+  });
+  bSel+="</select>";
+  var sAkt=getSonAktivite(srcB,m.adi);
+  return "<tr>"+
+    "<td class=\"tdno\"><input type=\"checkbox\" "+chk+" onchange=\"chToggle('"+key+"',this)\"></td>"+
+    "<td><span style=\"font-family:'JetBrains Mono',monospace;font-size:.68rem;font-weight:700;\">"+escH(m.cariKod||"—")+"</span></td>"+
+    "<td class=\"tdm\">"+escH(m.adi||"")+"</td>"+
+    "<td class=\"tdd\">"+escH(m.il||"—")+"</td>"+
+    "<td class=\"tdd\">"+escH(m.ilce||"—")+"</td>"+
+    "<td><span style=\"font-family:'JetBrains Mono',monospace;font-size:.68rem;\">"+escH(m.tel||"—")+"</span></td>"+
+    "<td style=\"min-width:140px\">"+bSel+"</td>"+
+    "<td>"+sAkt+"</td>"+
+    "<td><button onclick=\"openMusteriCH('"+srcB+"','"+escH(m.adi)+"')\" style=\"background:none;border:1px solid var(--border);border-radius:5px;padding:3px 8px;font-size:.63rem;font-weight:600;cursor:pointer;color:var(--muted);\">Duzenle</button></td>"+
+  "</tr>";
+}
+
+function drawCariHesaplar(){
+  var tb=document.getElementById("chBody");if(!tb)return;
+  var grupMod=(document.getElementById("chGrupMod")||{value:"flat"}).value==="group";
+  var fil=chGetFiltered();
+
+  // Pill sayılar
+  var tumC=0;ALL_BOLGELER.forEach(function(b){tumC+=STATE[b].musteriler.length;});
+  var atanmamisC=0;ALL_BOLGELER.forEach(function(b){STATE[b].musteriler.forEach(function(m){if(!String(m.bolge||"").trim())atanmamisC++;});});
+  var p1=document.getElementById("chPillToplam");if(p1)p1.textContent=tumC+" musteri";
+  var p2=document.getElementById("chPillAtanmamis");if(p2)p2.textContent=atanmamisC+" atanmamis";
+
+  // Toplu buton göster/gizle
+  var seciliSay=Object.keys(chSecili).filter(function(k){return chSecili[k];}).length;
+  var topluBtn=document.getElementById("chTopluBtn");
+  if(topluBtn){topluBtn.style.display=seciliSay>0?"":"none";topluBtn.textContent="&#10003; Toplu Ata ("+seciliSay+")";}
+
+  var THEAD='<thead><tr>'+
+    '<th style="width:28px"><input type="checkbox" id="chChkAll" onchange="chToggleAll(this)"></th>'+
+    '<th>Cari Kod</th><th>Musteri Adi</th><th>Il</th><th>Ilce</th><th>Telefon</th><th>Bolge</th><th>Son Aktivite</th><th></th>'+
+  '</tr></thead>';
+
+  if(!grupMod){
+    // ── DÜZ LİSTE + sayfalama ──
+    var s=(chPg-1)*20,slice=fil.slice(s,s+20),html="";
+    for(var i=0;i<slice.length;i++)html+=chBolgeRow(slice[i],s+i);
+    var total=Math.ceil(fil.length/20)||1;
+    if(chPg>total)chPg=total;
+    var pagHtml=chPagHtml(fil.length,chPg,total);
+    tb.innerHTML='<div class="tblwrap"><table>'+THEAD+'<tbody>'+html+'</tbody></table>'+pagHtml+'</div>';
+  } else {
+    // ── BÖLGEYE GÖRE GRUPLA ──
+    var grupSira=[["35","35 Izmir"],["44","44 Malatya"],["25","25 Erzurum"],["27","27 Gaziantep"],["","— Atanmamis"]];
+    var html="";
+    grupSira.forEach(function(gp){
+      var gPlaka=gp[0],gAd=gp[1];
+      var grup=fil.filter(function(it){return String(it.m.bolge||"").trim()===(gPlaka);});
+      if(!grup.length)return;
+      var renk=gPlaka?BOLGE_RENKLER[gPlaka]:"#9a948c";
+      var bg=gPlaka?BOLGE_BG[gPlaka]:"#f5f4f1";
+      html+='<div style="margin-bottom:16px;">'+
+        '<div style="display:flex;align-items:center;gap:8px;padding:7px 12px;background:'+bg+';border:1px solid '+renk+'33;border-radius:10px 10px 0 0;border-bottom:2px solid '+renk+';">'+
+          '<span style="width:10px;height:10px;border-radius:50%;background:'+renk+';flex-shrink:0;display:inline-block;"></span>'+
+          '<span style="font-size:.72rem;font-weight:700;color:'+renk+';">'+gAd+'</span>'+
+          '<span style="font-size:.62rem;color:var(--muted);margin-left:auto;">'+grup.length+' musteri</span>'+
+        '</div>'+
+        '<div class="tblwrap" style="border-radius:0 0 10px 10px;border-top:none;"><table>'+THEAD+'<tbody>';
+      for(var i=0;i<grup.length;i++)html+=chBolgeRow(grup[i],i);
+      html+='</tbody></table></div></div>';
+    });
+    if(!html)html='<div style="text-align:center;padding:40px;color:var(--muted);font-size:.8rem;">Sonuc bulunamadi.</div>';
+    tb.innerHTML=html;
+  }
+
+  // Tüm seç checkbox senkronize et
+  setTimeout(function(){
+    var ca=document.getElementById("chChkAll");
+    if(ca){var all=fil.length>0&&fil.every(function(it){return chSecili[chKey(it.srcBolge,it.m.adi)];});ca.checked=all;}
+  },50);
+}
+
+function chPagHtml(total,pg,totalPg){
+  if(totalPg<=1)return'<div class="pag"><span class="paginfo">'+total+' musteri</span></div>';
+  var s=(pg-1)*20,e=Math.min(s+20,total);
+  var h='<div class="pag"><span class="paginfo">'+(s+1)+"–"+e+" / "+total+' gosteriliyor</span><div class="pagbtns">';
+  h+='<button class="pb" '+(pg<=1?"disabled":"")+' onclick="chPg='+(pg-1)+';drawCariHesaplar()">&#8592;</button>';
+  for(var j=1;j<=totalPg;j++){
+    if(j===1||j===totalPg||Math.abs(j-pg)<=2)h+='<button class="pb'+(j===pg?" act":"")+'" onclick="chPg='+j+';drawCariHesaplar()">'+j+'</button>';
+    else if(Math.abs(j-pg)===3)h+='<span style="padding:0 3px;color:var(--muted)">...</span>';
+  }
+  h+='<button class="pb" '+(pg>=totalPg?"disabled":"")+' onclick="chPg='+(pg+1)+';drawCariHesaplar()">&#8594;</button>';
+  return h+'</div></div>';
+}
+
+function chToggle(key,chk){
+  chSecili[key]=chk.checked;
+  var topluBtn=document.getElementById("chTopluBtn");
+  var say=Object.keys(chSecili).filter(function(k){return chSecili[k];}).length;
+  if(topluBtn){topluBtn.style.display=say>0?"":"none";topluBtn.textContent="&#10003; Toplu Ata ("+say+")";}
+}
+function chToggleAll(chk){
+  var fil=chGetFiltered();
+  fil.forEach(function(it){chSecili[chKey(it.srcBolge,it.m.adi)]=chk.checked;});
+  drawCariHesaplar();
+}
+function chTopluAtaModal(){
+  var say=Object.keys(chSecili).filter(function(k){return chSecili[k];}).length;
+  if(!say){alert("Musteri secin.");return;}
+  document.getElementById("chTopluInfo").textContent=say+" musteri secildi. Hedef bolgeyi secin:";
+  document.getElementById("chTopluHedef").value="";
+  document.getElementById("chTopluModal").style.display="flex";
+}
+function chTopluAtaUygula(){
+  var hedefPlaka=document.getElementById("chTopluHedef").value;
+  if(!hedefPlaka){alert("Bolge secin.");return;}
+  var hedefBolge=BOLGELER[hedefPlaka]?BOLGELER[hedefPlaka].kod:null;
+  if(!hedefBolge){alert("Gecersiz bolge.");return;}
+  document.getElementById("chTopluModal").style.display="none";
+
+  // Seçili müşterileri topla
+  var seciliKeys=Object.keys(chSecili).filter(function(k){return chSecili[k];});
+  var islemler=[];
+  seciliKeys.forEach(function(key){
+    var parts=key.split("__"),srcB=parts[0],adi=parts.slice(1).join("__");
+    var srcList=STATE[srcB].musteriler;
+    for(var i=0;i<srcList.length;i++){
+      if(normalize(srcList[i].adi)===normalize(adi)){
+        islemler.push({m:srcList[i],srcBolge:srcB,idx:i});break;
+      }
+    }
+  });
+
+  // Bölge bazında grupla
+  var srcGruplari={};
+  islemler.forEach(function(it){
+    if(!srcGruplari[it.srcBolge])srcGruplari[it.srcBolge]=[];
+    srcGruplari[it.srcBolge].push(it);
+  });
+
+  var srcBolgeler=Object.keys(srcGruplari);
+  var tamamlanan=0;
+  var dstList=STATE[hedefBolge].musteriler.slice();
+
+  // Her kaynak bölgeyi güncelle
+  srcBolgeler.forEach(function(srcB){
+    var guruplar=srcGruplari[srcB];
+    var yeniSrcList=STATE[srcB].musteriler.slice();
+    // Taşınacakları güncelle: bolge alanı hedef plaka olacak
+    guruplar.forEach(function(it){
+      for(var i=0;i<yeniSrcList.length;i++){
+        if(normalize(yeniSrcList[i].adi)===normalize(it.m.adi)){
+          var obj={adi:yeniSrcList[i].adi,cariKod:yeniSrcList[i].cariKod||"",il:yeniSrcList[i].il||"",ilce:yeniSrcList[i].ilce||"",bolge:hedefPlaka,tel:yeniSrcList[i].tel||""};
+          if(srcB===hedefBolge){
+            // Aynı bölge, sadece bolge alanı güncelle
+            yeniSrcList[i]=obj;
+          } else {
+            // Farklı bölge: kaynaktan çıkar, hedefe ekle
+            yeniSrcList.splice(i,1);
+            var dstIdx=-1;
+            for(var j=0;j<dstList.length;j++){if(normalize(dstList[j].adi)===normalize(obj.adi)){dstIdx=j;break;}}
+            if(dstIdx>=0)dstList[dstIdx]=obj;else dstList.push(obj);
+          }
+          break;
+        }
+      }
+    });
+    STATE[srcB].musRef.set(yeniSrcList,function(){
+      tamamlanan++;
+      if(tamamlanan===srcBolgeler.length){
+        STATE[hedefBolge].musRef.set(dstList,function(){
+          chSecili={};
+          drawCariHesaplar();
+        });
+      }
+    });
+  });
+}
+
+function chChangeBolge(sel){
+  var srcB=sel.getAttribute("data-srcb");
+  var adi=sel.getAttribute("data-adi");
+  var yeniBolge=sel.value;
+  // STATE'ten müşteriyi bul
+  var m=null;
+  for(var i=0;i<STATE[srcB].musteriler.length;i++){
+    if(normalize(STATE[srcB].musteriler[i].adi)===normalize(adi)){m=STATE[srcB].musteriler[i];break;}
+  }
+  if(!m){alert("Bulunamadi!");return;}
+  var eskiBolge=String(m.bolge||"").trim();
+  if(eskiBolge===yeniBolge)return;
+
+  sel.className="bolge-select moving";
+  var obj={adi:m.adi,cariKod:m.cariKod||"",il:m.il||"",ilce:m.ilce||"",bolge:yeniBolge,tel:m.tel||""};
+  var hedefBolge=yeniBolge&&BOLGELER[yeniBolge]?BOLGELER[yeniBolge].kod:srcB;
+
+  function onHata(msg){sel.className="bolge-select";sel.value=eskiBolge;alert(msg||"Hata!");}
+  function onDone(){
+    var bCls=yeniBolge==="35"?"b35":yeniBolge==="44"?"b44":yeniBolge==="25"?"b25":yeniBolge==="27"?"b27":"";
+    sel.className="bolge-select "+bCls;
+    m.bolge=yeniBolge;
+    setTimeout(drawCariHesaplar,200);
+  }
+
+  var srcList=STATE[srcB].musteriler.slice();
+  var srcIdx=-1;
+  for(var i=0;i<srcList.length;i++){if(normalize(srcList[i].adi)===normalize(adi)){srcIdx=i;break;}}
+
+  if(hedefBolge!==srcB){
+    if(srcIdx<0){onHata("Kaynak bulunamadi!");return;}
+    srcList.splice(srcIdx,1);
+    STATE[srcB].musRef.set(srcList,function(e1){
+      if(e1){onHata("Kaynak hatasi!");return;}
+      var dstList=STATE[hedefBolge].musteriler.slice();
+      var dstIdx=-1;
+      for(var j=0;j<dstList.length;j++){if(normalize(dstList[j].adi)===normalize(obj.adi)){dstIdx=j;break;}}
+      if(dstIdx>=0)dstList[dstIdx]=obj;else dstList.push(obj);
+      STATE[hedefBolge].musRef.set(dstList,function(e2){if(e2){onHata("Hedef hatasi!");}else onDone();});
+    });
+  } else {
+    if(srcIdx>=0)srcList[srcIdx]=obj;else srcList.push(obj);
+    STATE[srcB].musRef.set(srcList,function(e){if(e)onHata();else onDone();});
+  }
+}
+
+function openMusteriCH(srcB,adi){
+  if(!srcB){
+    // Yeni müşteri — varsayılan bölge
+    var defB=currentUser&&!currentUser.isAdmin?currentUser.bolge:ALL_BOLGELER[0];
+    mFil[defB]=STATE[defB].musteriler.slice();
+    mEditB=defB;mEditIdx=-1;
+    document.getElementById("mModalTitle").textContent="Yeni Musteri";
+    ["mAdi","mCariKod","mIl","mIlce","mBolge","mTel"].forEach(function(id){document.getElementById(id).value="";});
+    document.getElementById("mModal").style.display="flex";
+    return;
+  }
+  mFil[srcB]=STATE[srcB].musteriler.slice();
+  var fi=-1;
+  for(var i=0;i<mFil[srcB].length;i++){if(normalize(mFil[srcB][i].adi)===normalize(adi)){fi=i;break;}}
+  openMusteri(srcB,fi);
 }
 
 function buildAyarlarPage(){
