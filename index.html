@@ -996,15 +996,16 @@ function drawListe(b){
     var item=slice[i],m=item.m,gi2=item.gi,fi=s+i;
     var stObj=st.statusMap[gi2]||{},stVal=stObj.status||"bekliyor";
     var partial=stObj.partial||"",vadeliT=stObj.vadeliTarih||(stVal==="vadeli"?st.donemCfg.vadeliTarih:"");
-    var custIsk=(stObj.iskonto!=null)?stObj.iskonto:m.iskonto,net=m.tutar*(1-custIsk/100);
+    var custTutar=(stObj.tutar!=null&&stObj.tutar>0)?stObj.tutar:m.tutar;
+    var custIsk=(stObj.iskonto!=null)?stObj.iskonto:m.iskonto,net=custTutar*(1-custIsk/100);
     var paidDonem=stObj.paidDonem||"",isBild=st.bildirimMap[gi2]||false;
     var trCls=stVal==="paid"?" class=\"st-paid\"":stVal==="iptal"?" class=\"st-iptal\"":stVal==="partial"?" class=\"st-partial\"":stVal==="vadeli"?" class=\"st-vadeli\"":"";
     var nCls=stVal==="paid"?" paid":stVal==="iptal"?" iptal":stVal==="partial"?" partial":stVal==="vadeli"?" vadeli":"";
     html+="<tr"+trCls+"><td class=\"tdno\">"+(fi+1)+"</td>";
     var dynBadge=m._dynamic&&(!m.tutar||m.tutar===0)?'<span style="background:#fef4ec;color:#c96f20;border:1px solid #f0c878;border-radius:4px;font-size:.55rem;padding:1px 5px;margin-left:4px;font-weight:700;">TUTAR GİR</span>':'';
     html+="<td class=\"tdm"+nCls+"\" data-label=\"Musteri\">"+escH(m.musteri)+dynBadge+"</td>";
-    html+="<td class=\"tdt\" data-label=\"Brut\">&#8378;"+tl(m.tutar)+"</td>";
-    html+="<td data-label=\"Iskonto\"><input class=\"isk-edit-inp\" type=\"number\" min=\"0\" max=\"99\" value=\""+custIsk+"\" data-b=\""+b+"\" data-gidx=\""+gi2+"\" data-tutar=\""+m.tutar+"\" onchange=\"changeIskonto(this)\"></td>";
+    html+="<td class=\"tdt\" data-label=\"Brut\">&#8378;"+tl(custTutar)+"</td>";
+    html+="<td data-label=\"Iskonto\"><input class=\"isk-edit-inp\" type=\"number\" min=\"0\" max=\"99\" value=\""+custIsk+"\" data-b=\""+b+"\" data-gidx=\""+gi2+"\" data-tutar=\""+custTutar+"\" onchange=\"changeIskonto(this)\"></td>";
     html+="<td class=\"tdnet"+(stVal==="iptal"?" iptal":"")+"\" data-label=\"Net\">&#8378;"+tl(net)+"</td>";
     html+="<td class=\"status-cell\" data-label=\"Durum\">";
     html+="<select class=\"status-select "+stVal+"\" data-b=\""+b+"\" data-gidx=\""+gi2+"\" onchange=\"changeStatus(this)\">";
@@ -1578,12 +1579,11 @@ function importExcel(b,inp){
         if(dataIdx<0){for(var di=0;di<data.length;di++){if(normalize(data[di].musteri)===normalize(musObj.adi)){dataIdx=di;break;}}}
 
         if(dataIdx>=0){
-          // Tutar ve iskonto güncelle
-          if(CI.brut>=0){var tvs=String(r[CI.brut]||"").replace(/[₺\s]/g,"").replace(/\.(?=\d{3})/g,"").replace(",",".");var tv=parseFloat(tvs);if(!isNaN(tv)&&tv>0)data[dataIdx].tutar=tv;}
-          if(CI.isk>=0){var ivs=String(r[CI.isk]||"").replace(",",".");var iv=parseFloat(ivs);if(!isNaN(iv)&&iv>=0)data[dataIdx].iskonto=iv;}
-
           // Durum ve ilgili alanları güncelle
           var so=newStatusMap[dataIdx]||{};
+          // Tutar ve iskonto — statusMap'e kaydet (BOLGE_DATA hardcoded, Firebase'e gitmiyor)
+          if(CI.brut>=0){var tvs=String(r[CI.brut]||"").replace(/[₺₺\s]/g,"").replace(/\.(?=\d{3})/g,"").replace(",",".");var tv=parseFloat(tvs);if(!isNaN(tv)&&tv>0)so.tutar=tv;}
+          if(CI.isk>=0){var ivs=String(r[CI.isk]||"").replace(",",".");var iv=parseFloat(ivs);if(!isNaN(iv)&&iv>=0)so.iskonto=iv;}
           if(CI.durum>=0){
             var dv=normalize(String(r[CI.durum]||"").trim());
             var mapped=durumMap[dv];
@@ -1619,11 +1619,12 @@ function exportExcel(b){
   var rows=[["#","CariKod","Müşteri","Il","Ilce","Telefon","Bölge(Plaka)","Brut","İskonto%","Net","Durum","ÖdemeDönemi","KısmiTutar","Vade","Bildirim"]];
   for(var i=0;i<data.length;i++){
     var m=data[i],so=st.statusMap[i]||{},sv=so.status||"bekliyor";
-    var ci=(so.iskonto!=null)?so.iskonto:m.iskonto,net=m.tutar*(1-ci/100);
+    var expTutar=(so.tutar!=null&&so.tutar>0)?so.tutar:m.tutar;
+    var ci=(so.iskonto!=null)?so.iskonto:m.iskonto,net=expTutar*(1-ci/100);
     var mus=null;
     for(var j=0;j<st.musteriler.length;j++){if(normalize(st.musteriler[j].adi)===normalize(m.musteri)){mus=st.musteriler[j];break;}}
     mus=mus||{};
-    rows.push([i+1,mus.cariKod||"",m.musteri,mus.il||"",mus.ilce||"",mus.tel||"",mus.bolge||"",m.tutar.toFixed(2).replace(".",","),ci,net.toFixed(2).replace(".",","),lbl[sv]||sv,so.paidDonem||"",so.partial||"",so.vadeliTarih||"",st.bildirimMap[i]?"Evet":"Hayir"]);
+    rows.push([i+1,mus.cariKod||"",m.musteri,mus.il||"",mus.ilce||"",mus.tel||"",mus.bolge||"",expTutar.toFixed(2).replace(".",","),ci,net.toFixed(2).replace(".",","),lbl[sv]||sv,so.paidDonem||"",so.partial||"",so.vadeliTarih||"",st.bildirimMap[i]?"Evet":"Hayir"]);
   }
   var csv=rows.map(function(r){return r.map(function(v){var s=String(v);if(s.indexOf(",")>=0||s.indexOf(";")>=0||s.indexOf('"')>=0)s='"'+s.replace(/"/g,'""')+'"';return s;}).join(";");}).join("\r\n");
   var blob=new Blob(["\uFEFF"+csv],{type:"text/csv;charset=utf-8;"});
