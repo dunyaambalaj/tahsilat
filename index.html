@@ -324,7 +324,7 @@ var mEditB=null,mEditIdx=-1;
 var currentUser=null,activeBolge=null,settingsUnlocked=false;
 
 function tl(n){return n.toLocaleString("tr-TR",{minimumFractionDigits:2,maximumFractionDigits:2});}
-function normalize(s){return String(s||"").toLowerCase().replace(/\u0131/g,"i").replace(/\u0130/g,"i").replace(/\u015f/g,"s").replace(/\u015e/g,"s").replace(/\u00fc/g,"u").replace(/\u00dc/g,"u").replace(/\u00f6/g,"o").replace(/\u00d6/g,"o").replace(/\u00e7/g,"c").replace(/\u00c7/g,"c").replace(/\u011f/g,"g").replace(/\u011e/g,"g");}
+function normalize(s){return String(s||"").replace(/\u0130/g,"I").replace(/\u0131/g,"i").replace(/\u015e/g,"S").replace(/\u015f/g,"s").replace(/\u00dc/g,"U").replace(/\u00fc/g,"u").replace(/\u00d6/g,"O").replace(/\u00f6/g,"o").replace(/\u00c7/g,"C").replace(/\u00e7/g,"c").replace(/\u011e/g,"G").replace(/\u011f/g,"g").toLowerCase().replace(/\u0307/g,"");}
 function escH(s){return String(s||"").replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;");}
 function setSyncStatus(cls,msg){var b=document.getElementById("syncbar");if(b){b.className="syncbar "+cls;document.getElementById("synctxt").textContent=msg;}}
 
