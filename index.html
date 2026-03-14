@@ -495,7 +495,7 @@ function buildListePage(b){
         '<span class="pill pill-red" id="pIptal_'+b+'">0 iptal</span>'+
         '<span class="pill pill-vadeli" id="pVadeli_'+b+'">0 vadeli</span>'+
         '<span class="pill pill-bildirim" id="pBildirim_'+b+'">0 bildirim</span>'+
-        '<button onclick="exportExcel(\'+b+\')" style="background:var(--green);color:#fff;border:none;border-radius:6px;padding:4px 11px;font-family:\'Sora\',sans-serif;font-size:.62rem;font-weight:700;cursor:pointer;">&#128190; Excel</button>'+
+        '<button id="exportBtn_'+b+'" data-bolge="'+b+'" style="background:var(--green);color:#fff;border:none;border-radius:6px;padding:4px 11px;font-family:\'Sora\',sans-serif;font-size:.62rem;font-weight:700;cursor:pointer;">&#128190; Excel</button>'+
       '</div>'+
     '</div>'+
     '<div class="filters">'+
@@ -517,7 +517,7 @@ function buildListePage(b){
   (function(bb){setTimeout(function(){
     var inp=document.getElementById("sinp_"+bb);
     if(inp)inp.addEventListener("input",function(){STATE[bb].pg=1;applyFilters(bb);});
-    // Filtre butonları — data-b ve data-f ile
+    // Filtre butonları
     var page=document.getElementById("page_liste_"+bb);
     if(page){
       page.querySelectorAll(".filt-btn[data-b]").forEach(function(btn){
@@ -526,6 +526,9 @@ function buildListePage(b){
         });
       });
     }
+    // Excel export butonu
+    var expBtn=document.getElementById("exportBtn_"+bb);
+    if(expBtn)expBtn.addEventListener("click",function(){exportExcel(bb);});
   },200);})(b);
 }
 
@@ -540,9 +543,9 @@ function buildMusterilerPage(b){
     '<div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:12px;align-items:center;">'+
       '<div class="srch" style="flex:1;min-width:200px;"><span class="ico">&#128269;</span><input type="text" id="mSinp_'+b+'" placeholder="Müşteri adıyla arayın..."></div>'+
       '<button onclick="downloadSablon()" style="background:#6d4c9e;color:#fff;border:none;border-radius:8px;padding:7px 13px;font-family:\'Sora\',sans-serif;font-size:.7rem;font-weight:700;cursor:pointer;">&#128203; Şablon İndir</button>'+
-      '<label style="background:var(--green);color:#fff;border:none;border-radius:8px;padding:7px 13px;font-family:\'Sora\',sans-serif;font-size:.7rem;font-weight:700;cursor:pointer;">&#128196; Excel Yukle'+
-        '<input type="file" id="xlsxInp_'+b+'" accept=".xlsx,.xls,.csv" style="display:none" onchange="importExcel(\'+b+\',this)"></label>'+
-      '<button onclick="openMusteri(\'+b+\',-1)" style="background:var(--dark);color:#fff;border:none;border-radius:8px;padding:7px 13px;font-family:\'Sora\',sans-serif;font-size:.7rem;font-weight:700;cursor:pointer;">+ Yeni Müşteri</button>'+
+      '<label style="background:var(--green);color:#fff;border:none;border-radius:8px;padding:7px 13px;font-family:\'Sora\',sans-serif;font-size:.7rem;font-weight:700;cursor:pointer;">&#128196; Excel Yükle'+
+        '<input type="file" id="xlsxInp_'+b+'" accept=".xlsx,.xls,.csv" style="display:none" data-bolge="'+b+'"></label>'+
+      '<button id="yeniMusteriBtn_'+b+'" data-bolge="'+b+'" data-fi="-1" style="background:var(--dark);color:#fff;border:none;border-radius:8px;padding:7px 13px;font-family:\'Sora\',sans-serif;font-size:.7rem;font-weight:700;cursor:pointer;">+ Yeni Müşteri</button>'+
     '</div>'+
     '<div class="tblwrap"><table>'+
       '<thead><tr><th>#</th><th>Cari Kod</th><th>Müşteri Adı</th><th>İl</th><th>İlçe</th><th>Bölge (Plaka)</th><th>Telefon</th><th>Son Aktivite</th><th></th></tr></thead>'+
@@ -550,7 +553,16 @@ function buildMusterilerPage(b){
     '</table><div class="pag" id="mPag_'+b+'"></div></div>'+
   '</div>';
   c.appendChild(d);
-  (function(bb){setTimeout(function(){var inp=document.getElementById("mSinp_"+bb);if(inp)inp.addEventListener("input",function(){mPg[bb]=1;drawMusteriler(bb);});},200);})(b);
+  (function(bb){setTimeout(function(){
+    var inp=document.getElementById("mSinp_"+bb);
+    if(inp)inp.addEventListener("input",function(){mPg[bb]=1;drawMusteriler(bb);});
+    // Excel Yükle input
+    var xlsxInp=document.getElementById("xlsxInp_"+bb);
+    if(xlsxInp)xlsxInp.addEventListener("change",function(){importExcel(bb,this);});
+    // Yeni Müşteri butonu
+    var yeniBtn=document.getElementById("yeniMusteriBtn_"+bb);
+    if(yeniBtn)yeniBtn.addEventListener("click",function(){openMusteri(bb,-1);});
+  },200);})(b);
 }
 
 function ensureCariHesaplarPage(){
@@ -1087,13 +1099,20 @@ function drawPag(b,fil){
   var pag=document.getElementById("pag_"+b);if(!pag)return;
   if(total<=1&&fil.length<=20){pag.innerHTML="";return;}
   var s=(pg-1)*20,e=Math.min(s+20,fil.length);
-  var h="<button class=\"pb\" "+(pg<=1?"disabled":"")+' onclick="STATE[\''+b+'\'\'].pg='+(pg-1)+';drawListe(\'+b+\')">&#8592;</button>';
+  var h='<button class="pb" '+(pg<=1?'disabled':'')+' data-pag-b="'+b+'" data-pag-pg="'+(pg-1)+'" data-pag-type="liste">&#8592;</button>';
   for(var i=1;i<=total;i++){
-    if(i===1||i===total||Math.abs(i-pg)<=2)h+='<button class="pb'+(i===pg?" act":"")+'" onclick="STATE[\''+b+'\'\'].pg='+i+';drawListe(\'+b+\')">'+i+'</button>';
+    if(i===1||i===total||Math.abs(i-pg)<=2)h+='<button class="pb'+(i===pg?' act':'')+'" data-pag-b="'+b+'" data-pag-pg="'+i+'" data-pag-type="liste">'+i+'</button>';
     else if(Math.abs(i-pg)===3)h+='<span style="padding:0 3px;color:var(--muted)">...</span>';
   }
-  h+="<button class=\"pb\" "+(pg>=total?"disabled":"")+' onclick="STATE[\''+b+'\'\'].pg='+(pg+1)+';drawListe(\'+b+\')">&#8594;</button>';
-  pag.innerHTML='<span class="paginfo">'+(s+1)+"&ndash;"+e+" / "+fil.length+' gösteriliyor</span><div class="pagbtns">'+h+'</div>';
+  h+='<button class="pb" '+(pg>=total?'disabled':'')+' data-pag-b="'+b+'" data-pag-pg="'+(pg+1)+'" data-pag-type="liste">&#8594;</button>';
+  pag.innerHTML='<span class="paginfo">'+(s+1)+'&ndash;'+e+' / '+fil.length+' gösteriliyor</span><div class="pagbtns">'+h+'</div>';
+  // Event listener ekle
+  pag.querySelectorAll('[data-pag-type="liste"]').forEach(function(btn){
+    if(!btn.disabled)btn.addEventListener('click',function(){
+      STATE[this.getAttribute('data-pag-b')].pg=parseInt(this.getAttribute('data-pag-pg'));
+      drawListe(this.getAttribute('data-pag-b'));
+    });
+  });
 }
 
 // ── MÜŞTERİLER ──
@@ -1133,10 +1152,17 @@ function drawMusteriler(b){
   if(!pag)return;
   if(total<=1){pag.innerHTML="";return;}
   var ss=(pg-1)*20,ee=Math.min(ss+20,mFil[b].length);
-  var h="<button class=\"pb\" "+(pg<=1?"disabled":"")+' onclick="mPg[\''+b+'\'\']='+(pg-1)+';drawMusteriler(\'+b+\')">&#8592;</button>';
-  for(var j=1;j<=total;j++)if(j===1||j===total||Math.abs(j-pg)<=2)h+='<button class="pb'+(j===pg?" act":"")+'" onclick="mPg[\''+b+'\']='+j+';drawMusteriler(\''+b+'\')">'+j+'</button>';
-  h+="<button class=\"pb\" "+(pg>=total?"disabled":"")+' onclick="mPg[\''+b+'\'\']='+(pg+1)+';drawMusteriler(\'+b+\')">&#8594;</button>';
-  pag.innerHTML='<span class="paginfo">'+(ss+1)+"&ndash;"+ee+" / "+mFil[b].length+' gösteriliyor</span><div class="pagbtns">'+h+'</div>';
+  var h='<button class="pb" '+(pg<=1?'disabled':'')+' data-pag-b="'+b+'" data-pag-pg="'+(pg-1)+'" data-pag-type="mus">&#8592;</button>';
+  for(var j=1;j<=total;j++)if(j===1||j===total||Math.abs(j-pg)<=2)h+='<button class="pb'+(j===pg?' act':'')+'" data-pag-b="'+b+'" data-pag-pg="'+j+'" data-pag-type="mus">'+j+'</button>';
+  h+='<button class="pb" '+(pg>=total?'disabled':'')+' data-pag-b="'+b+'" data-pag-pg="'+(pg+1)+'" data-pag-type="mus">&#8594;</button>';
+  pag.innerHTML='<span class="paginfo">'+(ss+1)+'&ndash;'+ee+' / '+mFil[b].length+' gösteriliyor</span><div class="pagbtns">'+h+'</div>';
+  pag.querySelectorAll('[data-pag-type="mus"]').forEach(function(btn){
+    if(!btn.disabled)btn.addEventListener('click',function(){
+      var bb=this.getAttribute('data-pag-b');
+      mPg[bb]=parseInt(this.getAttribute('data-pag-pg'));
+      drawMusteriler(bb);
+    });
+  });
 }
 function changeBolgeSelect(sel){
   var b=sel.getAttribute("data-b"),fi=parseInt(sel.getAttribute("data-fi"));
@@ -1369,7 +1395,7 @@ function importCariHesaplar(inp){
         vade:  col(["vade","vadeli","vadetarih"]),
         bild:  col(["bildirim"])
       };
-      var durumMap={"odedi":"paid","paid":"paid","kismi":"partial","partial":"partial","iptal":"iptal","vadeli":"vadeli","bekliyor":"bekliyor"};
+      var durumMap={"odedi":"paid","ödedi":"paid","paid":"paid","kismi":"partial","kısmi":"partial","partial":"partial","iptal":"iptal","ıptal":"iptal","vadeli":"vadeli","bekliyor":"bekliyor"};
       var plakaMap={"35":"izmir","44":"malatya","25":"erzurum","27":"gaziantep"};
 
       // Bölge bazında yeni liste ve statusMap hazırla
@@ -1435,7 +1461,7 @@ function importCariHesaplar(inp){
           bdata.push({musteri:musObj.adi,cariKod:musObj.cariKod||"",donem:"",nakitTarih:"",kartTarih:"",tutar:0,iskonto:0,_dynamic:true});
           dataIdx=bdata.length-1;
         }
-        if(CI.brut>=0){var tv=parseFloat(String(r[CI.brut]||"").replace(",","."));if(!isNaN(tv)&&tv>=0)bdata[dataIdx].tutar=tv;}
+        if(CI.brut>=0){var tvs2=String(r[CI.brut]||"").replace(/[₺\s]/g,"").replace(/\.(?=\d{3})/g,"").replace(",",".");var tv=parseFloat(tvs2);if(!isNaN(tv)&&tv>=0)bdata[dataIdx].tutar=tv;}
         if(CI.isk>=0){var iv=parseFloat(String(r[CI.isk]||"").replace(",","."));if(!isNaN(iv)&&iv>=0)bdata[dataIdx].iskonto=iv;}
 
         var so=newStatus[effB][dataIdx]||{};
@@ -1500,21 +1526,21 @@ function importExcel(b,inp){
       var hdr=rawRows[0].map(function(h){return normalize(String(h||""));});
       function col(names){for(var n=0;n<names.length;n++){var idx=hdr.indexOf(normalize(names[n]));if(idx>=0)return idx;}return -1;}
       var CI={
-        adi:    col(["musteri","musteri adi","ad","adi"]),
+        adi:    col(["musteri","musteri adi","ad","adi","musterı"]),
         cari:   col(["cari kod","carikod","cari"]),
         il:     col(["il"]),
         ilce:   col(["ilce"]),
         tel:    col(["telefon","tel"]),
-        bolge:  col(["bolge(plaka)","bolge","plaka"]),
-        brut:   col(["brut","tutar"]),
-        isk:    col(["iskonto%","iskonto","isk"]),
+        bolge:  col(["bolge(plaka)","bolge","plaka","bölge(plaka)","bolge plaka"]),
+        brut:   col(["brut","tutar","brüt"]),
+        isk:    col(["iskonto%","iskonto","isk","iskonto %","işkonto%","işkonto"]),
         durum:  col(["durum","status"]),
-        donem:  col(["odemedonemi","odeme donemi","donem"]),
-        kismi:  col(["kismi","kismitutar","kismi tutar"]),
+        donem:  col(["odemedonemi","odeme donemi","donem","odemedönemi","ödemedonëmı"]),
+        kismi:  col(["kismi","kismitutar","kismi tutar","kısmitutar"]),
         vade:   col(["vade","vadeli","vadetarih"]),
         bild:   col(["bildirim"])
       };
-      var durumMap={"odedi":"paid","paid":"paid","kismi":"partial","partial":"partial","iptal":"iptal","vadeli":"vadeli","bekliyor":"bekliyor"};
+      var durumMap={"odedi":"paid","ödedi":"paid","paid":"paid","kismi":"partial","kısmi":"partial","partial":"partial","iptal":"iptal","ıptal":"iptal","vadeli":"vadeli","bekliyor":"bekliyor"};
 
       var addedM=0,updatedM=0,updatedS=0;
       var list=STATE[b].musteriler.slice();
@@ -1553,8 +1579,8 @@ function importExcel(b,inp){
 
         if(dataIdx>=0){
           // Tutar ve iskonto güncelle
-          if(CI.brut>=0){var tv=parseFloat(String(r[CI.brut]||"").replace(",","."));if(!isNaN(tv)&&tv>0)data[dataIdx].tutar=tv;}
-          if(CI.isk>=0){var iv=parseFloat(String(r[CI.isk]||"").replace(",","."));if(!isNaN(iv)&&iv>=0)data[dataIdx].iskonto=iv;}
+          if(CI.brut>=0){var tvs=String(r[CI.brut]||"").replace(/[₺\s]/g,"").replace(/\.(?=\d{3})/g,"").replace(",",".");var tv=parseFloat(tvs);if(!isNaN(tv)&&tv>0)data[dataIdx].tutar=tv;}
+          if(CI.isk>=0){var ivs=String(r[CI.isk]||"").replace(",",".");var iv=parseFloat(ivs);if(!isNaN(iv)&&iv>=0)data[dataIdx].iskonto=iv;}
 
           // Durum ve ilgili alanları güncelle
           var so=newStatusMap[dataIdx]||{};
