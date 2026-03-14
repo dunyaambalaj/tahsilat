@@ -932,57 +932,44 @@ function buildAyarlarPage(){
 // ── FİLTRE & LİSTE ──
 function setFilter(b,f){
   STATE[b].activeFilter=f;
-  ["fAll","fBek","fPaid","fPart","fIptal","fVadeli","fBildirim"].forEach(function(id,i){
+  ["fAll","fBek","fPaid","fPart","fIptal","fVadeli","fBildirim"].forEach(function(id){
     var el=document.getElementById(id+"_"+b);if(el)el.classList.remove("active");
   });
   var names=["fAll","fBek","fPaid","fPart","fIptal","fVadeli","fBildirim"];
   var el=document.getElementById(names[f]+"_"+b);if(el)el.classList.add("active");
-  STATE[b].pg=1;applyFilters(b);
+  STATE[b].pg=1;
+  drawListe(b);
 }
 function applyFilters(b){
-  var baseData=BOLGE_DATA[b],extra=(_extraMus&&_extraMus[b])||[];
-  var data=baseData.concat(extra);
-  var q=normalize((document.getElementById("sinp_"+b)||{value:""}).value||""),f=STATE[b].activeFilter;
-  // i = data içindeki gerçek indeks → statusMap için doğru key
-  STATE[b].fil=data.filter(function(m,i){
-    var realIdx=data.indexOf(m); // indexOf ile kesin indeks al
-    var st=(STATE[b].statusMap[realIdx]&&STATE[b].statusMap[realIdx].status)||"bekliyor";
-    var ok=f===0||(f===1&&st==="bekliyor")||(f===2&&st==="paid")||(f===3&&st==="partial")||(f===4&&st==="iptal")||(f===5&&st==="vadeli")||(f===6&&STATE[b].bildirimMap[realIdx]);
-    return(!q||normalize(m.musteri).indexOf(q)>=0)&&ok;
-  });
+  STATE[b].pg=1;
   drawListe(b);
 }
 
 function drawListe(b){
   var baseData=BOLGE_DATA[b],extra=(_extraMus&&_extraMus[b])||[],st=STATE[b];
   var data=baseData.concat(extra);
-  // Firebase güncellemesi gelince filtreyi yeniden uygula (durum değişmiş olabilir)
-  if(!st.fil||st._filDirty){
-    var _q=normalize((document.getElementById("sinp_"+b)||{value:""}).value||"");
-    var _f=STATE[b].activeFilter||0;
-    if(_f===0&&!_q){
-      st.fil=data.slice(); // Filtre yok, tümünü göster
-    } else {
-      // Aktif filtre/arama varsa yeniden uygula
-      st.fil=data.filter(function(m,i){
-        var realIdx=data.indexOf(m);
-        var _st=(STATE[b].statusMap[realIdx]&&STATE[b].statusMap[realIdx].status)||"bekliyor";
-        var _ok=_f===0||(_f===1&&_st==="bekliyor")||(_f===2&&_st==="paid")||(_f===3&&_st==="partial")||(_f===4&&_st==="iptal")||(_f===5&&_st==="vadeli")||(_f===6&&STATE[b].bildirimMap[realIdx]);
-        return(!_q||normalize(m.musteri).indexOf(_q)>=0)&&_ok;
-      });
-    }
-    st._filDirty=false;
+  // Her çizimde filtre + arama sıfırdan uygula — karmaşık state yok
+  var q=normalize((document.getElementById("sinp_"+b)||{value:""}).value||"");
+  var f=st.activeFilter||0;
+  var fil=[];
+  for(var gi=0;gi<data.length;gi++){
+    var m=data[gi];
+    var gst=(st.statusMap[gi]&&st.statusMap[gi].status)||"bekliyor";
+    var ok=f===0||(f===1&&gst==="bekliyor")||(f===2&&gst==="paid")||(f===3&&gst==="partial")||(f===4&&gst==="iptal")||(f===5&&gst==="vadeli")||(f===6&&st.bildirimMap[gi]);
+    if((!q||normalize(m.musteri).indexOf(q)>=0)&&ok) fil.push({m:m,gi:gi});
   }
-  var s=(st.pg-1)*20,slice=st.fil.slice(s,s+20);
-  var tb=document.getElementById("tbody_"+b);if(!tb)return;
-  var html="",paidC=0,partialC=0,iptalC=0,vadeliC=0,bildirimC=0;
+  // Pill sayıları — TÜM data üzerinden (filtreden bağımsız)
+  var paidC=0,partialC=0,iptalC=0,vadeliC=0,bildirimC=0;
   for(var gi=0;gi<data.length;gi++){
     var gst=(st.statusMap[gi]&&st.statusMap[gi].status)||"bekliyor";
     if(gst==="paid")paidC++;else if(gst==="partial")partialC++;else if(gst==="iptal")iptalC++;else if(gst==="vadeli")vadeliC++;
     if(st.bildirimMap[gi])bildirimC++;
   }
+  var s=(st.pg-1)*20,slice=fil.slice(s,s+20);
+  var tb=document.getElementById("tbody_"+b);if(!tb)return;
+  var html="";
   for(var i=0;i<slice.length;i++){
-    var m=slice[i],fi=s+i,gi2=data.indexOf(m);
+    var item=slice[i],m=item.m,gi2=item.gi,fi=s+i;
     var stObj=st.statusMap[gi2]||{},stVal=stObj.status||"bekliyor";
     var partial=stObj.partial||"",vadeliT=stObj.vadeliTarih||(stVal==="vadeli"?st.donemCfg.vadeliTarih:"");
     var custIsk=(stObj.iskonto!=null)?stObj.iskonto:m.iskonto,net=m.tutar*(1-custIsk/100);
@@ -1030,7 +1017,7 @@ function drawListe(b){
   if(g("pBildirim_"+b))g("pBildirim_"+b).textContent=bildirimC+" bildirim";
   updateDonemBaslik(b);
   attachListeners(b);
-  drawPag(b);
+  drawPag(b,fil);
 }
 function updateDonemBaslik(b){var el=document.getElementById("dBaslik_"+b);if(el&&STATE[b].donemCfg.donem)el.textContent=STATE[b].donemCfg.donem+" "+STATE[b].donemCfg.yil+" Odeme Listesi";}
 
@@ -1083,8 +1070,8 @@ function changeIskonto(inp){
   STATE[b].stRef.set(STATE[b].statusMap);
 }
 
-function drawPag(b){
-  var fil=STATE[b].fil,pg=STATE[b].pg||1,total=Math.ceil(fil.length/20);
+function drawPag(b,fil){
+  var pg=STATE[b].pg||1,total=Math.ceil(fil.length/20);
   var pag=document.getElementById("pag_"+b);if(!pag)return;
   if(total<=1&&fil.length<=20){pag.innerHTML="";return;}
   var s=(pg-1)*20,e=Math.min(s+20,fil.length);
