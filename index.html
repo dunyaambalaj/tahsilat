@@ -596,12 +596,24 @@ function buildCariHesaplarPage(){
           '<option value="group">Bölgeye Göre Grupla</option>'+
         '</select>'+
         '<button onclick="chTopluAtaModal()" id="chTopluBtn" style="background:#1a6b8a;color:#fff;border:none;border-radius:8px;padding:7px 12px;font-family:\'Sora\',sans-serif;font-size:.7rem;font-weight:700;cursor:pointer;display:none;">&#10003; Toplu Ata</button>'+
+        '<button onclick="chTopluSilModal()" id="chTopluSilBtn" style="background:#fff;border:1px solid var(--red);color:var(--red);border-radius:8px;padding:7px 12px;font-family:\'Sora\',sans-serif;font-size:.7rem;font-weight:700;cursor:pointer;display:none;">&#128465; Toplu Sil</button>'+
         '<button onclick="openMusteriCH(\'\',\'\')" style="background:var(--dark);color:#fff;border:none;border-radius:8px;padding:7px 13px;font-family:\'Sora\',sans-serif;font-size:.7rem;font-weight:700;cursor:pointer;">+ Yeni Müşteri</button>'+
         '<button onclick="exportCariHesaplar()" style="background:#1e7a46;color:#fff;border:none;border-radius:8px;padding:7px 12px;font-family:\'Sora\',sans-serif;font-size:.7rem;font-weight:700;cursor:pointer;">&#128190; Dışa Aktar</button>'+
         '<label style="background:#c96f20;color:#fff;border:none;border-radius:8px;padding:7px 12px;font-family:\'Sora\',sans-serif;font-size:.7rem;font-weight:700;cursor:pointer;display:inline-block;">&#128229; İçeri Aktar<input type="file" id="chImportInp" accept=".xlsx,.xls,.csv" style="display:none" onchange="importCariHesaplar(this)"></label>'+
         '<button onclick="downloadSablon()" style="background:#6d4c9e;color:#fff;border:none;border-radius:8px;padding:7px 12px;font-family:\'Sora\',sans-serif;font-size:.7rem;font-weight:700;cursor:pointer;">&#128203; Şablon</button>'+
       '</div>'+
       '<div id="chBody"></div>'+
+    '</div>'+
+    /* Toplu silme mini modal */
+    '<div id="chTopluSilModal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.4);z-index:9990;align-items:center;justify-content:center;">'+
+      '<div style="background:#fff;border-radius:14px;padding:24px;width:320px;box-shadow:0 8px 32px rgba(0,0,0,.2);">'+
+        '<div style="font-size:.85rem;font-weight:700;margin-bottom:14px;color:var(--red);">&#128465; Seçili Müşterileri Sil</div>'+
+        '<div style="font-size:.72rem;color:var(--muted);margin-bottom:16px;" id="chTopluSilInfo"></div>'+
+        '<div style="display:flex;gap:8px;justify-content:flex-end;">'+
+          '<button onclick="document.getElementById(\'chTopluSilModal\').style.display=\'none\'" style="background:var(--bg);border:1px solid var(--border);border-radius:8px;padding:7px 14px;font-family:\'Sora\',sans-serif;font-size:.75rem;font-weight:600;cursor:pointer;color:var(--muted);">İptal</button>'+
+          '<button onclick="chTopluSilUygula()" style="background:var(--red);color:#fff;border:none;border-radius:8px;padding:7px 18px;font-family:\'Sora\',sans-serif;font-size:.75rem;font-weight:700;cursor:pointer;">Evet, Sil</button>'+
+        '</div>'+
+      '</div>'+
     '</div>'+
     /* Toplu atama mini modal */
     '<div id="chTopluModal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.4);z-index:9990;align-items:center;justify-content:center;">'+
@@ -698,6 +710,8 @@ function drawCariHesaplar(){
   var seciliSay=Object.keys(chSecili).filter(function(k){return chSecili[k];}).length;
   var topluBtn=document.getElementById("chTopluBtn");
   if(topluBtn){topluBtn.style.display=seciliSay>0?"":"none";topluBtn.textContent="&#10003; Toplu Ata ("+seciliSay+")";}
+  var topluSilBtn=document.getElementById("chTopluSilBtn");
+  if(topluSilBtn){topluSilBtn.style.display=seciliSay>0?"":"none";topluSilBtn.textContent="&#128465; Toplu Sil ("+seciliSay+")";}
 
   var THEAD='<thead><tr>'+
     '<th style="width:28px"><input type="checkbox" id="chChkAll" onchange="chToggleAll(this)"></th>'+
@@ -758,15 +772,62 @@ function chPagHtml(total,pg,totalPg){
 
 function chToggle(key,chk){
   chSecili[key]=chk.checked;
-  var topluBtn=document.getElementById("chTopluBtn");
   var say=Object.keys(chSecili).filter(function(k){return chSecili[k];}).length;
+  var topluBtn=document.getElementById("chTopluBtn");
   if(topluBtn){topluBtn.style.display=say>0?"":"none";topluBtn.textContent="&#10003; Toplu Ata ("+say+")";}
+  var topluSilBtn=document.getElementById("chTopluSilBtn");
+  if(topluSilBtn){topluSilBtn.style.display=say>0?"":"none";topluSilBtn.textContent="&#128465; Toplu Sil ("+say+")";}
 }
 function chToggleAll(chk){
   var fil=chGetFiltered();
   fil.forEach(function(it){chSecili[chKey(it.srcBolge,it.m.adi)]=chk.checked;});
   drawCariHesaplar();
 }
+function chTopluSilModal(){
+  var say=Object.keys(chSecili).filter(function(k){return chSecili[k];}).length;
+  if(!say){alert("Müşteri seçin.");return;}
+  document.getElementById("chTopluSilInfo").textContent=say+" müşteri kalıcı olarak silinecek. Bu işlem geri alınamaz!";
+  document.getElementById("chTopluSilModal").style.display="flex";
+}
+
+function chTopluSilUygula(){
+  document.getElementById("chTopluSilModal").style.display="none";
+  var seciliKeys=Object.keys(chSecili).filter(function(k){return chSecili[k];});
+
+  // Bölge bazında grupla
+  var gruplari={};
+  seciliKeys.forEach(function(key){
+    var parts=key.split("__"),srcB=parts[0],adi=parts.slice(1).join("__");
+    if(!gruplari[srcB])gruplari[srcB]=[];
+    gruplari[srcB].push(adi);
+  });
+
+  var srcBolgeler=Object.keys(gruplari);
+  var tamamlanan=0;
+
+  srcBolgeler.forEach(function(srcB){
+    var silinecekler=gruplari[srcB];
+    var yeniList=STATE[srcB].musteriler.filter(function(m){
+      return !silinecekler.some(function(adi){return normalize(m.adi||"")===normalize(adi);});
+    });
+    // BOLGE_DATA'dan da sil
+    var bd=BOLGE_DATA[srcB];
+    silinecekler.forEach(function(adi){
+      for(var i=0;i<bd.length;i++){
+        if(normalize(bd[i].musteri)===normalize(adi)){bd.splice(i,1);break;}
+      }
+    });
+    STATE[srcB].musRef.set(yeniList,function(){
+      tamamlanan++;
+      if(tamamlanan===srcBolgeler.length){
+        chSecili={};
+        drawCariHesaplar();
+        alert(seciliKeys.length+" müşteri silindi.");
+      }
+    });
+  });
+}
+
 function chTopluAtaModal(){
   var say=Object.keys(chSecili).filter(function(k){return chSecili[k];}).length;
   if(!say){alert("Müşteri seçin.");return;}
@@ -1680,13 +1741,32 @@ function importExcel(b,inp){
         if(musIdx>=0){list[musIdx]=musObj;updatedM++;}
         else{list.push(musObj);addedM++;}
 
-        // statusMap index: BOLGE_DATA'da varsa o index, yoksa musteriler listesindeki index
+        // statusMap index = getMergedData() sonucundaki pozisyon
+        // getMergedData: önce BOLGE_DATA, sonra musteriler'den yeni olanlar
+        // BOLGE_DATA'da varsa o index, yoksa BOLGE_DATA.length + list içindeki pozisyon
         var dataIdx=-1;
         if(cKod){for(var di=0;di<data.length;di++){if(data[di].cariKod&&normalize(data[di].cariKod)===normalize(cKod)){dataIdx=di;break;}}}
         if(dataIdx<0){for(var di=0;di<data.length;di++){if(normalize(data[di].musteri)===normalize(musObj.adi)){dataIdx=di;break;}}}
 
-        // BOLGE_DATA'da yoksa list içindeki index kullan
-        var smIdx=dataIdx>=0?dataIdx:(musIdx>=0?musIdx:list.length-1);
+        var smIdx;
+        if(dataIdx>=0){
+          smIdx=dataIdx; // BOLGE_DATA'daki index (İzmir hardcoded için)
+        } else {
+          // Yeni müşteri: getMergedData'da BOLGE_DATA.length + list'teki sırası
+          var listIdx=musIdx>=0?musIdx:list.length-1;
+          // BOLGE_DATA'da olmayanlar: daha önce eklenmiş mi sayalım
+          var baseCount=data.length;
+          var prevNewCount=0;
+          for(var pi=0;pi<listIdx;pi++){
+            var pm=list[pi];
+            var inBase=false;
+            for(var pd=0;pd<data.length;pd++){
+              if((pm.cariKod&&data[pd].cariKod&&normalize(pm.cariKod)===normalize(data[pd].cariKod))||normalize(data[pd].musteri)===normalize(pm.adi||"")){inBase=true;break;}
+            }
+            if(!inBase)prevNewCount++;
+          }
+          smIdx=baseCount+prevNewCount;
+        }
         var so=newStatusMap[smIdx]||{};
         if(musObj.tutar)so.tutar=musObj.tutar;
         if(musObj.iskonto!=null)so.iskonto=musObj.iskonto;
