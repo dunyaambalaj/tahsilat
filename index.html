@@ -970,8 +970,11 @@ function applyFilters(b){
 }
 
 function drawListe(b){
-  var data=BOLGE_DATA[b],st=STATE[b];
-  // Her çizimde filtre + arama sıfırdan uygula — karmaşık state yok
+  var st=STATE[b];
+  // drawListe STATE[b].musteriler'i kullanır — tüm bölgeler için tek kaynak
+  // BOLGE_DATA[b] sadece İzmir'in orijinal verisi, diğer bölgeler için boş
+  // Her iki kaynağı birleştir: önce BOLGE_DATA (orijinal), sonra musteriler'den yeni olanlar
+  var data=getMergedData(b);
   var q=normalize((document.getElementById("sinp_"+b)||{value:""}).value||"");
   var f=st.activeFilter||0;
   var fil=[];
@@ -995,14 +998,9 @@ function drawListe(b){
     var item=slice[i],m=item.m,gi2=item.gi,fi=s+i;
     var stObj=st.statusMap[gi2]||{},stVal=stObj.status||"bekliyor";
     var partial=stObj.partial||"",vadeliT=stObj.vadeliTarih||(stVal==="vadeli"?st.donemCfg.vadeliTarih:"");
-    // Tutar: statusMap > musteriler[eşleşen] > BOLGE_DATA
-    var _musObj=null;
-    for(var _mi=0;_mi<st.musteriler.length;_mi++){
-      var _mu=st.musteriler[_mi];
-      if((m.cariKod&&_mu.cariKod&&normalize(_mu.cariKod)===normalize(m.cariKod))||normalize(_mu.adi||"")===normalize(m.musteri)){_musObj=_mu;break;}
-    }
-    var custTutar=(stObj.tutar!=null&&stObj.tutar>0)?stObj.tutar:(_musObj&&_musObj.tutar>0?_musObj.tutar:m.tutar);
-    var custIsk=(stObj.iskonto!=null)?stObj.iskonto:(_musObj&&_musObj.iskonto!=null?_musObj.iskonto:m.iskonto);
+    // Tutar: statusMap override > getMergedData'dan gelen (zaten birleştirildi)
+    var custTutar=(stObj.tutar!=null&&stObj.tutar>0)?stObj.tutar:m.tutar;
+    var custIsk=(stObj.iskonto!=null)?stObj.iskonto:m.iskonto;
     var net=custTutar*(1-custIsk/100);
     var paidDonem=stObj.paidDonem||"",isBild=st.bildirimMap[gi2]||false;
     var trCls=stVal==="paid"?" class=\"st-paid\"":stVal==="iptal"?" class=\"st-iptal\"":stVal==="partial"?" class=\"st-partial\"":stVal==="vadeli"?" class=\"st-vadeli\"":"";
@@ -1260,6 +1258,8 @@ function openMusteri(b,fi){
   document.getElementById("mIlce").value=m.ilce||"";
   document.getElementById("mBolge").value=m.bolge||"";
   document.getElementById("mTel").value=m.tel||"";
+  var silBtn=document.getElementById("mSilBtn");
+  if(silBtn)silBtn.style.display=fi>=0?"":"none";
   document.getElementById("mModal").style.display="flex";
 }
 function closeMusteri(){document.getElementById("mModal").style.display="none";}
@@ -1306,8 +1306,92 @@ function saveMusteri(){
     STATE[hedefBolge].musRef.set(dstList,function(e){if(!e)closeMusteri();else alert("Hata!");});
   }
 }
+function silMusteri(){
+  var b=mEditB,fi=mEditIdx;
+  if(fi<0){alert("Silinecek müşteri yok.");return;}
+  var orig=mFil[b]&&mFil[b][fi];
+  if(!orig){alert("Müşteri bulunamadı.");return;}
+  if(!confirm(orig.adi+" silinsin mi? Bu islem geri alinamaz.")){return;}
+  var srcList=STATE[b].musteriler.slice();
+  var srcIdx=-1;
+  for(var i=0;i<srcList.length;i++){
+    if(normalize(srcList[i].adi)===normalize(orig.adi)){srcIdx=i;break;}
+  }
+  if(srcIdx<0){alert("Kayıt bulunamadı.");return;}
+  srcList.splice(srcIdx,1);
+  STATE[b].musRef.set(srcList,function(e){
+    if(!e){
+      // BOLGE_DATA'dan da kaldır
+      var bd=BOLGE_DATA[b];
+      for(var i=0;i<bd.length;i++){
+        if(normalize(bd[i].musteri)===normalize(orig.adi)){bd.splice(i,1);break;}
+      }
+      closeMusteri();
+      alert(orig.adi+" silindi.");
+    } else {
+      alert("Silme hatası!");
+    }
+  });
+}
+
 // _extraMus artık kullanılmıyor — BOLGE_DATA direkt güncelleniyor
 var _extraMus = {};
+
+// getMergedData: Her çağrıda STATE[b].musteriler + BOLGE_DATA[b]'yi birleştirir
+// Sonuç: [{musteri, cariKod, tutar, iskonto, ...}, ...]
+// Index = statusMap key'i (sabit kalır)
+var _mergedCache = {};
+
+function getMergedData(b) {
+  // BOLGE_DATA[b]: hardcoded orijinal veri (İzmir dolu, diğerleri boş)
+  var base = BOLGE_DATA[b] || [];
+  var musteriler = STATE[b].musteriler || [];
+  
+  // Sonuç array — base'deki sıra korunur, sonra yeni eklenenler
+  var result = [];
+  var eklendi = {}; // normalize(adi) -> true, çift eklemeyi önle
+  
+  // 1. BOLGE_DATA'daki kayıtlar (İzmir hardcoded verisi)
+  for (var i = 0; i < base.length; i++) {
+    var bd = base[i];
+    var key = normalize(bd.musteri || "");
+    // musteriler'den tutar/iskonto varsa güncelle
+    var mus = null;
+    for (var j = 0; j < musteriler.length; j++) {
+      var mu = musteriler[j];
+      if ((bd.cariKod && mu.cariKod && normalize(bd.cariKod) === normalize(mu.cariKod)) ||
+          normalize(mu.adi || "") === key) { mus = mu; break; }
+    }
+    result.push({
+      musteri: bd.musteri,
+      cariKod: (mus && mus.cariKod) || bd.cariKod || "",
+      tutar:   (mus && mus.tutar > 0) ? mus.tutar : bd.tutar,
+      iskonto: (mus && mus.iskonto != null) ? mus.iskonto : bd.iskonto,
+      donem: bd.donem || "", nakitTarih: bd.nakitTarih || "", kartTarih: bd.kartTarih || "",
+      _dynamic: false
+    });
+    eklendi[key] = true;
+  }
+  
+  // 2. musteriler'den BOLGE_DATA'da olmayan yeni kayıtlar
+  for (var j = 0; j < musteriler.length; j++) {
+    var mu = musteriler[j];
+    if (!mu.adi) continue;
+    var key2 = normalize(mu.adi);
+    if (eklendi[key2]) continue; // zaten base'de var
+    result.push({
+      musteri: mu.adi,
+      cariKod: mu.cariKod || "",
+      tutar:   mu.tutar || 0,
+      iskonto: mu.iskonto != null ? mu.iskonto : 0,
+      donem: "", nakitTarih: "", kartTarih: "",
+      _dynamic: true
+    });
+    eklendi[key2] = true;
+  }
+  
+  return result;
+}
 
 function rebuildBolgeData(b) {
   // STATE[b].musteriler'deki kayıtları BOLGE_DATA[b]'ye sync et.
@@ -1628,7 +1712,7 @@ function importExcel(b,inp){
   reader.readAsBinaryString(file);
 }
 function exportExcel(b){
-  var data=BOLGE_DATA[b],st=STATE[b];
+  var data=getMergedData(b),st=STATE[b];
   var lbl={bekliyor:"Bekliyor",paid:"Ödedi",partial:"Kısmi",iptal:"İptal",vadeli:"Vadeli"};
   var rows=[["#","CariKod","Müşteri","Il","Ilce","Telefon","Bölge(Plaka)","Brut","İskonto%","Net","Durum","ÖdemeDönemi","KısmiTutar","Vade","Bildirim"]];
   for(var i=0;i<data.length;i++){
@@ -1800,6 +1884,7 @@ document.addEventListener("DOMContentLoaded",function(){
       '<div style="grid-column:1/-1;" class="set-item"><label>Telefon (WhatsApp)</label><input type="text" id="mTel" placeholder="905XXXXXXXXX"></div>'+
     '</div>'+
     '<div style="display:flex;gap:8px;margin-top:18px;justify-content:flex-end;">'+
+      '<button id="mSilBtn" onclick="silMusteri()" style="background:#fff;border:1px solid var(--red);color:var(--red);border-radius:8px;padding:8px 14px;font-family:\'Sora\',sans-serif;font-size:.76rem;font-weight:600;cursor:pointer;display:none;">🗑 Sil</button>'+
       '<button onclick="closeMusteri()" style="background:var(--bg);border:1px solid var(--border);border-radius:8px;padding:8px 16px;font-family:\'Sora\',sans-serif;font-size:.76rem;font-weight:600;cursor:pointer;color:var(--muted);">İptal</button>'+
       '<button onclick="saveMusteri()" style="background:var(--dark);color:#fff;border:none;border-radius:8px;padding:8px 20px;font-family:\'Sora\',sans-serif;font-size:.76rem;font-weight:700;cursor:pointer;">Kaydet</button>'+
     '</div>'+
