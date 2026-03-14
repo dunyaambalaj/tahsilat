@@ -374,10 +374,10 @@ function startApp(){
 // ── BÖLGE YÜKLE ──
 function loadBolge(b){
   var stRef=db.ref("adel_status_"+b);
-  stRef.on("value",function(s){STATE[b].statusMap=s.val()||{};setSyncStatus("synced","Canli senkron");STATE[b]._filDirty=true;drawListe(b);},function(){setSyncStatus("error","Hata");});
+  stRef.on("value",function(s){var raw=s.val()||{};var norm={};Object.keys(raw).forEach(function(k){norm[parseInt(k)]=raw[k];});STATE[b].statusMap=norm;setSyncStatus("synced","Canli senkron");drawListe(b);},function(){setSyncStatus("error","Hata");});
   STATE[b].stRef=stRef;
   var bildRef=db.ref("adel_bildirim_"+b);
-  bildRef.on("value",function(s){STATE[b].bildirimMap=s.val()||{};STATE[b]._filDirty=true;drawListe(b);});
+  bildRef.on("value",function(s){var raw2=s.val()||{};var norm2={};Object.keys(raw2).forEach(function(k){norm2[parseInt(k)]=raw2[k];});STATE[b].bildirimMap=norm2;drawListe(b);});
   STATE[b].bildRef=bildRef;
   var iskRef=db.ref("adel_iskonto_"+b);
   iskRef.on("value",function(s){var d=s.val();if(d&&d.length)STATE[b].odeme=d;});
