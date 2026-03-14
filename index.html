@@ -374,10 +374,10 @@ function startApp(){
 // ── BÖLGE YÜKLE ──
 function loadBolge(b){
   var stRef=db.ref("adel_status_"+b);
-  stRef.on("value",function(s){STATE[b].statusMap=s.val()||{};setSyncStatus("synced","Canli senkron");drawListe(b);},function(){setSyncStatus("error","Hata");});
+  stRef.on("value",function(s){STATE[b].statusMap=s.val()||{};setSyncStatus("synced","Canli senkron");STATE[b]._filDirty=true;drawListe(b);},function(){setSyncStatus("error","Hata");});
   STATE[b].stRef=stRef;
   var bildRef=db.ref("adel_bildirim_"+b);
-  bildRef.on("value",function(s){STATE[b].bildirimMap=s.val()||{};drawListe(b);});
+  bildRef.on("value",function(s){STATE[b].bildirimMap=s.val()||{};STATE[b]._filDirty=true;drawListe(b);});
   STATE[b].bildRef=bildRef;
   var iskRef=db.ref("adel_iskonto_"+b);
   iskRef.on("value",function(s){var d=s.val();if(d&&d.length)STATE[b].odeme=d;});
@@ -408,6 +408,7 @@ function loadBolge(b){
         }
       }
     }
+    STATE[b]._filDirty=true;
     drawListe(b);
     // Müşteriler sayfası açıksa onu da yenile
     var musPage=document.getElementById("page_musteriler_"+b);
@@ -942,20 +943,36 @@ function applyFilters(b){
   var baseData=BOLGE_DATA[b],extra=(_extraMus&&_extraMus[b])||[];
   var data=baseData.concat(extra);
   var q=normalize((document.getElementById("sinp_"+b)||{value:""}).value||""),f=STATE[b].activeFilter;
+  // i = data içindeki gerçek indeks → statusMap için doğru key
   STATE[b].fil=data.filter(function(m,i){
-    var st=(STATE[b].statusMap[i]&&STATE[b].statusMap[i].status)||"bekliyor";
-    var ok=f===0||(f===1&&st==="bekliyor")||(f===2&&st==="paid")||(f===3&&st==="partial")||(f===4&&st==="iptal")||(f===5&&st==="vadeli")||(f===6&&STATE[b].bildirimMap[i]);
+    var realIdx=data.indexOf(m); // indexOf ile kesin indeks al
+    var st=(STATE[b].statusMap[realIdx]&&STATE[b].statusMap[realIdx].status)||"bekliyor";
+    var ok=f===0||(f===1&&st==="bekliyor")||(f===2&&st==="paid")||(f===3&&st==="partial")||(f===4&&st==="iptal")||(f===5&&st==="vadeli")||(f===6&&STATE[b].bildirimMap[realIdx]);
     return(!q||normalize(m.musteri).indexOf(q)>=0)&&ok;
   });
   drawListe(b);
 }
 
 function drawListe(b){
-  // BOLGE_DATA[b] + _extraMus[b] (bölgeye atanmış ama listede olmayanlar) birleşik
   var baseData=BOLGE_DATA[b],extra=(_extraMus&&_extraMus[b])||[],st=STATE[b];
-  var data=baseData.concat(extra); // extra'nın indeksi baseData.length + i
-  // fil yoksa tümünü göster; ama applyFilters'dan geliyorsa sıfırlama
-  if(!st.fil)st.fil=data.slice();
+  var data=baseData.concat(extra);
+  // Firebase güncellemesi gelince filtreyi yeniden uygula (durum değişmiş olabilir)
+  if(!st.fil||st._filDirty){
+    var _q=normalize((document.getElementById("sinp_"+b)||{value:""}).value||"");
+    var _f=STATE[b].activeFilter||0;
+    if(_f===0&&!_q){
+      st.fil=data.slice(); // Filtre yok, tümünü göster
+    } else {
+      // Aktif filtre/arama varsa yeniden uygula
+      st.fil=data.filter(function(m,i){
+        var realIdx=data.indexOf(m);
+        var _st=(STATE[b].statusMap[realIdx]&&STATE[b].statusMap[realIdx].status)||"bekliyor";
+        var _ok=_f===0||(_f===1&&_st==="bekliyor")||(_f===2&&_st==="paid")||(_f===3&&_st==="partial")||(_f===4&&_st==="iptal")||(_f===5&&_st==="vadeli")||(_f===6&&STATE[b].bildirimMap[realIdx]);
+        return(!_q||normalize(m.musteri).indexOf(_q)>=0)&&_ok;
+      });
+    }
+    st._filDirty=false;
+  }
   var s=(st.pg-1)*20,slice=st.fil.slice(s,s+20);
   var tb=document.getElementById("tbody_"+b);if(!tb)return;
   var html="",paidC=0,partialC=0,iptalC=0,vadeliC=0,bildirimC=0;
