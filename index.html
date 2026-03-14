@@ -500,13 +500,13 @@ function buildListePage(b){
     '</div>'+
     '<div class="filters">'+
       '<div class="srch"><span class="ico">&#128269;</span><input type="text" id="sinp_'+b+'" placeholder="Müşteri adıyla arayın..."></div>'+
-      '<button class="filt-btn fAll active" id="fAll_'+b+'" onclick="setFilter(\'+b+\',0)">Tümü</button>'+
-      '<button class="filt-btn f-bekliyor" id="fBek_'+b+'" onclick="setFilter(\'+b+\',1)">Bekliyor</button>'+
-      '<button class="filt-btn f-paid" id="fPaid_'+b+'" onclick="setFilter(\'+b+\',2)">Ödedi</button>'+
-      '<button class="filt-btn f-partial" id="fPart_'+b+'" onclick="setFilter(\'+b+\',3)">Kısmi</button>'+
-      '<button class="filt-btn f-iptal" id="fIptal_'+b+'" onclick="setFilter(\'+b+\',4)">İptal</button>'+
-      '<button class="filt-btn f-vadeli" id="fVadeli_'+b+'" onclick="setFilter(\'+b+\',5)">Vadeli</button>'+
-      '<button class="filt-btn f-bildirim" id="fBildirim_'+b+'" onclick="setFilter(\'+b+\',6)">Bildirim</button>'+
+      '<button class="filt-btn fAll active" id="fAll_'+b+'" data-b="'+b+'" data-f="0">Tümü</button>'+
+      '<button class="filt-btn f-bekliyor" id="fBek_'+b+'" data-b="'+b+'" data-f="1">Bekliyor</button>'+
+      '<button class="filt-btn f-paid" id="fPaid_'+b+'" data-b="'+b+'" data-f="2">Ödedi</button>'+
+      '<button class="filt-btn f-partial" id="fPart_'+b+'" data-b="'+b+'" data-f="3">Kısmi</button>'+
+      '<button class="filt-btn f-iptal" id="fIptal_'+b+'" data-b="'+b+'" data-f="4">İptal</button>'+
+      '<button class="filt-btn f-vadeli" id="fVadeli_'+b+'" data-b="'+b+'" data-f="5">Vadeli</button>'+
+      '<button class="filt-btn f-bildirim" id="fBildirim_'+b+'" data-b="'+b+'" data-f="6">Bildirim</button>'+
     '</div>'+
     '<div class="tblwrap"><table>'+
       '<thead><tr><th>#</th><th>Musteri</th><th>Brüt Tutar</th><th>Cari İskonto</th><th>Net Tutar</th><th>Durum</th><th>Ödeme Dönemi</th><th style="text-align:center">Bildirim</th><th>İndir</th></tr></thead>'+
@@ -514,7 +514,19 @@ function buildListePage(b){
     '</table><div class="pag" id="pag_'+b+'"></div></div>'+
   '</div>';
   c.appendChild(d);
-  (function(bb){setTimeout(function(){var inp=document.getElementById("sinp_"+bb);if(inp)inp.addEventListener("input",function(){STATE[bb].pg=1;applyFilters(bb);});},200);})(b);
+  (function(bb){setTimeout(function(){
+    var inp=document.getElementById("sinp_"+bb);
+    if(inp)inp.addEventListener("input",function(){STATE[bb].pg=1;applyFilters(bb);});
+    // Filtre butonları — data-b ve data-f ile
+    var page=document.getElementById("page_liste_"+bb);
+    if(page){
+      page.querySelectorAll(".filt-btn[data-b]").forEach(function(btn){
+        btn.addEventListener("click",function(){
+          setFilter(this.getAttribute("data-b"),parseInt(this.getAttribute("data-f")));
+        });
+      });
+    }
+  },200);})(b);
 }
 
 function buildMusterilerPage(b){
